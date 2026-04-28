@@ -1,0 +1,8 @@
+.history
+node_modules
+dist
+example
+__tests__/**/*.js
+__tests__/**/*.js.map
+__tests__/**/*.d.ts
+__tests__/**/*.d.ts.map

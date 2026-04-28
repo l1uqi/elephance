@@ -1,0 +1,48 @@
+{
+  "name": "elephance",
+  "version": "0.1.0",
+  "description": "A lightweight LanceDB wrapper for vector storage, memory management, and schema retrieval",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "assets"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
+    "prepublishOnly": "npm run build"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "lancedb",
+    "vector",
+    "embedding",
+    "memory",
+    "storage",
+    "semantic-search"
+  ],
+  "dependencies": {
+    "@lancedb/lancedb": "^0.27.2"
+  },
+  "peerDependencies": {
+    "openai": ">=4.0.0"
+  },
+  "devDependencies": {
+    "@jest/globals": "^29.0.0",
+    "@types/node": "^20.0.0",
+    "jest": "^29.0.0",
+    "ts-jest": "^29.0.0",
+    "typescript": "^5.0.0"
+  }
+}
