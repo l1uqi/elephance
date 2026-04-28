@@ -1,0 +1,44 @@
+{
+  "name": "elephance-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for elephance local vector memory and schema retrieval",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "elephance-mcp": "./dist/server.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node ./dist/server.js",
+    "prepublishOnly": "npm run build"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "mcp",
+    "cursor",
+    "lancedb",
+    "vector",
+    "memory",
+    "semantic-search"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.11.0",
+    "elephance": "^0.1.0",
+    "zod": "^3.24.0"
+  },
+  "peerDependencies": {
+    "openai": ">=4.0.0"
+  }
+}

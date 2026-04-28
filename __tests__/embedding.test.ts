@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from "@jest/globals";
-import { setEmbeddingProvider, getEmbeddingProvider, configureEmbedding, getEmbeddingModel, embedText, embedTexts } from "../src/embedding.js";
+import { setEmbeddingProvider, getEmbeddingProvider, configureEmbedding, getEmbeddingModel, embedText, embedTexts } from "../packages/core/src/embedding.js";
 
 // Mock embedding provider for testing
 class MockEmbeddingProvider {

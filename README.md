@@ -6,79 +6,104 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-A lightweight TypeScript wrapper around LanceDB for local vector storage, user memory, and project schema retrieval.
+Local vector memory for AI apps, agents, and MCP clients.
+
+`elephance` wraps LanceDB with a small TypeScript API for durable user memory and project schema retrieval. The repository also ships `elephance-mcp`, a stdio MCP server that exposes the same storage layer to Cursor and other MCP clients.
 
 [![npm version](https://img.shields.io/npm/v/elephance)](https://www.npmjs.com/package/elephance)
 [![MIT License](https://img.shields.io/npm/l/elephance)](LICENSE)
 
-## What Problem Does It Solve?
+## Why
 
-Many AI applications need a small, reliable vector store without building a full retrieval system from scratch. This package gives you:
+AI products often need a simple memory layer before they need a full RAG platform. `elephance` focuses on that middle ground:
 
-- Local-first vector persistence backed by LanceDB.
-- User memory storage, including smart overwrite for stable preference slots.
-- Project schema retrieval for SQL tables, fields, and relationship notes.
-- A pluggable embedding layer, so you can use OpenAI-compatible APIs or your own embedding service.
-- Compact retrieval output for LLM prompts, reducing prompt size while keeping useful context.
+- Store local vectors on disk with LanceDB.
+- Save and retrieve user memories by semantic similarity.
+- Keep stable user preferences tidy with overwrite slots.
+- Store Markdown schema chunks for database tables, fields, and relationships.
+- Query schema by semantic search, exact table name, or batched keywords.
+- Swap the embedding backend without changing storage code.
+- Run the same capabilities through MCP for Cursor and agent workflows.
 
-It is useful when building AI assistants, coding tools, RAG features, personal memory systems, and MCP servers that need durable semantic search.
+## Packages
 
-## Features
+| Package | Role |
+| --- | --- |
+| `elephance` | Core TypeScript SDK. Use this inside Node.js apps, CLIs, agents, and servers. |
+| `elephance-mcp` | Stdio MCP server. Use this from Cursor or any MCP-compatible client. |
 
-- **Local Vector Storage**: LanceDB stores vectors on disk under your configured path.
-- **Memory Management**: Store and query user memories by semantic similarity.
-- **Smart Preference Overwrite**: `user_preference` memories overwrite per user and label by default.
-- **Schema Retrieval**: Store Markdown schema chunks and retrieve them semantically or by exact table name.
-- **Batch Schema Query**: Query several keywords and merge duplicate sources.
-- **Pluggable Embeddings**: Use the default OpenAI-compatible provider or inject your own provider.
-- **Minimal Mode**: Return compact schema text for LLM prompts.
+## Install
 
-## Installation
+Core SDK:
 
 ```bash
 npm install elephance
 ```
 
-The default embedding provider uses the OpenAI SDK as a peer dependency:
+Default embeddings use the OpenAI SDK as a peer dependency:
 
 ```bash
 npm install openai
 ```
 
-For local development from this repository:
+MCP server:
 
 ```bash
-npm run build
-npm install path/to/elephance
+npm install elephance-mcp
 ```
 
 ## Quick Start
 
 ```ts
-import { configure, upsertMemory, queryMemory } from "elephance";
+import { configure, queryMemory, upsertMemory } from "elephance";
 
 configure({
   dbPath: "./data/.lancedb",
 });
 
-await upsertMemory("I prefer dark theme", {
+await upsertMemory("The user prefers concise TypeScript examples.", {
   userId: "user-123",
   label: "user_preference",
 });
 
-const hits = await queryMemory("theme preference");
+const hits = await queryMemory("How should I answer this user?", {
+  topK: 3,
+});
+
 console.log(hits);
 ```
 
-## Environment Variables
+## Cursor MCP
 
-| Variable | Required | Description |
-| --- | --- | --- |
-| `OPENAI_API_KEY` | Yes* | OpenAI API key. Required only when using the default embedding provider. |
-| `OPENAI_EMBEDDING_MODEL` | No | Embedding model. Defaults to `text-embedding-3-small`. |
-| `OPENAI_RELAY_BASE_URL` | No | OpenAI-compatible relay base URL, for example `https://example.com/v1`. |
-| `OPENAI_BASE_URL` | No | Legacy relay base URL. Lower priority than `OPENAI_RELAY_BASE_URL`. |
-| `MEMORY_OVERWRITE_LABELS` | No | Comma-separated labels that should overwrite per user and label. Defaults to `user_preference`. |
+Add `elephance-mcp` to your Cursor MCP config:
+
+```json
+{
+  "mcpServers": {
+    "elephance": {
+      "command": "npx",
+      "args": ["elephance-mcp"],
+      "env": {
+        "ELEPHANCE_DB_PATH": ".lancedb",
+        "OPENAI_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
+
+The MCP server exposes these tools:
+
+| Tool | Purpose |
+| --- | --- |
+| `memory_upsert` | Store a short user memory. |
+| `memory_query` | Search memories semantically. |
+| `memory_clear_user` | Delete all memory for a user. |
+| `schema_replace_source` | Replace schema chunks for one source path. |
+| `schema_delete_source` | Delete schema chunks for one source path. |
+| `schema_query` | Search schema semantically. |
+| `schema_query_by_table_names` | Retrieve known tables by exact name. |
+| `schema_batch_query` | Query multiple schema keywords and merge results. |
 
 ## Configuration
 
@@ -96,90 +121,93 @@ configureEmbedding({
 });
 ```
 
-| Option | Type | Default | Description |
-| --- | --- | --- | --- |
-| `dbPath` | `string` | `.lancedb` | Database directory path. Relative paths resolve from `process.cwd()`. |
-| `memoryTable` | `string` | `memory` | Table name for user memory rows. |
-| `schemaTable` | `string` | `project_schema` | Table name for project schema rows. |
+| Option | Default | Description |
+| --- | --- | --- |
+| `dbPath` | `.lancedb` | LanceDB directory. Relative paths resolve from `process.cwd()`. |
+| `memoryTable` | `memory` | Table for user memory rows. |
+| `schemaTable` | `project_schema` | Table for project schema rows. |
 
-## Memory Usage
+Environment variables:
 
-Use memory APIs to store user preferences, facts, notes, or interaction summaries.
+| Variable | Description |
+| --- | --- |
+| `OPENAI_API_KEY` | Required only when using the default OpenAI-compatible embedding provider. |
+| `OPENAI_EMBEDDING_MODEL` | Embedding model. Defaults to `text-embedding-3-small`. |
+| `OPENAI_RELAY_BASE_URL` | OpenAI-compatible base URL. |
+| `OPENAI_BASE_URL` | Legacy base URL fallback. |
+| `MEMORY_OVERWRITE_LABELS` | Comma-separated labels that overwrite per user and label. Defaults to `user_preference`. |
+| `ELEPHANCE_DB_PATH` | MCP server database path. |
+| `ELEPHANCE_MEMORY_TABLE` | MCP server memory table. |
+| `ELEPHANCE_SCHEMA_TABLE` | MCP server schema table. |
+
+## Memory
 
 ```ts
-import {
-  configure,
-  upsertMemory,
-  queryMemory,
-  clearUserMemory,
-} from "elephance";
+import { clearUserMemory, queryMemory, upsertMemory } from "elephance";
 
-configure({ dbPath: "./data/.lancedb" });
-
-await upsertMemory("I prefer TypeScript over JavaScript", {
-  userId: "user-456",
+await upsertMemory("The user prefers pnpm in this project.", {
+  userId: "user-123",
   label: "user_preference",
 });
 
-const results = await queryMemory("programming language preference", {
-  topK: 3,
+await upsertMemory("The billing module uses cents for money values.", {
+  userId: "user-123",
+  label: "note",
 });
 
-await clearUserMemory("user-456");
+const memories = await queryMemory("package manager and billing conventions", {
+  topK: 5,
+});
+
+await clearUserMemory("user-123");
 ```
 
-For labels listed in `MEMORY_OVERWRITE_LABELS`, the row ID is derived from `userId + label`. This means a new `user_preference` for the same user replaces the old one instead of accumulating duplicates.
+Labels listed in `MEMORY_OVERWRITE_LABELS` are stored in stable user + label slots. By default, a new `user_preference` for the same user replaces the older one instead of accumulating duplicates.
 
-## Schema Retrieval Usage
-
-Use schema APIs to store Markdown chunks that describe database tables, fields, relationships, or project documents.
+## Schema Retrieval
 
 ```ts
 import {
-  configure,
-  replaceProjectSchemaForSource,
+  batchQueryProjectSchema,
   queryProjectSchema,
   queryProjectSchemaByTableNames,
-  batchQueryProjectSchema,
+  replaceProjectSchemaForSource,
 } from "elephance";
-
-configure({ dbPath: "./data/.lancedb" });
 
 await replaceProjectSchemaForSource(
   "tables/billing_invoice.md",
   new Date().toISOString(),
   [
-    "## Fields\n- id: primary key\n- amount: invoice amount",
-    "## Notes\nInvoices can be joined with payments by invoice_id.",
+    "## Fields\n- id: primary key\n- customer_id: customer reference",
+    "## Relations\nInvoices join payments through invoice_id.",
   ]
 );
 
-const semanticHits = await queryProjectSchema("invoice payment join", {
+const semanticHits = await queryProjectSchema("how invoices connect to payments", {
   minimal: true,
   topK: 3,
 });
 
-const exactHits = await queryProjectSchemaByTableNames([
+const tableHits = await queryProjectSchemaByTableNames([
   "billing_invoice",
   "billing_payment",
 ]);
 
-const mergedHits = await batchQueryProjectSchema(
-  ["invoice", "payment", "customer"],
-  { mergedTopK: 4 }
-);
+const mergedHits = await batchQueryProjectSchema(["invoice", "payment"], {
+  mergedTopK: 4,
+});
 ```
 
-## Custom Embedding Provider
+Use exact table-name lookup when you already know the tables. Use semantic or batch query when the model needs discovery.
 
-Use a custom provider when you do not want to call OpenAI directly, or when you already have embeddings from another service.
+## Custom Embeddings
 
 ```ts
 import {
   configure,
+  queryMemory,
   setEmbeddingProvider,
   upsertMemory,
-  queryMemory,
   type EmbeddingProvider,
 } from "elephance";
 
@@ -196,7 +224,7 @@ class MyEmbeddingProvider implements EmbeddingProvider {
 configure({ dbPath: "./data/.lancedb" });
 setEmbeddingProvider(new MyEmbeddingProvider());
 
-await upsertMemory("The user prefers concise answers", {
+await upsertMemory("The user prefers direct answers.", {
   userId: "user-123",
   label: "user_preference",
 });
@@ -204,13 +232,26 @@ await upsertMemory("The user prefers concise answers", {
 const hits = await queryMemory("answer style");
 ```
 
-All vectors stored in the same table should use the same embedding dimensionality. If you switch embedding models or providers with a different vector size, use a new LanceDB path or table.
+All vectors in the same table should use the same embedding model and dimensionality. If you switch to a model with a different vector size, use a new `dbPath` or table name.
 
-## API Reference
+## Safety Notes
 
-### Connection
+`elephance` does not write anything by itself. Data is created only when your app or MCP client calls write APIs such as `upsertMemory` or `replaceProjectSchemaForSource`.
+
+- Add `.lancedb` to your app's `.gitignore` unless you intentionally want to commit local vector data.
+- Do not store secrets, access tokens, passwords, private keys, or sensitive personal data in memory.
+- Keep each memory short, specific, and independently understandable.
+- Prefer `label: "user_preference"` for durable preferences.
+- Use labels such as `note`, `summary`, or `fact` for accumulating context.
+- Call `clearUserMemory(userId)` when a user asks to delete memory.
+- Prefer one schema source per table or bounded module, such as `tables/billing_invoice.md`.
+
+See [examples/rules.md](examples/rules.md) for a copyable project rules template.
+
+## API
 
 ```ts
+// Connection
 configure(options?: VectorStoreOptions): void
 getConfig(): Required<VectorStoreOptions>
 connect(): Promise<Connection>
@@ -218,83 +259,36 @@ resetConnection(): void
 getTableNames(): Promise<string[]>
 tableExists(tableName: string): Promise<boolean>
 openTable(tableName: string): Promise<Table>
-```
 
-### Embedding
-
-```ts
+// Embedding
 setEmbeddingProvider(provider: EmbeddingProvider): void
 getEmbeddingProvider(): EmbeddingProvider | null
 configureEmbedding(options?: EmbeddingOptions): void
 getEmbeddingModel(): string
 embedText(text: string): Promise<number[]>
 embedTexts(texts: string[]): Promise<number[][]>
-```
 
-### Memory
-
-```ts
+// Memory
 upsertMemory(text: string, metadata?: Record<string, unknown>): Promise<void>
 queryMemory(queryText: string, options?: QueryOptions): Promise<MemoryHit[]>
 clearUserMemory(userId: string): Promise<void>
-```
 
-### Schema
-
-```ts
+// Schema
 deleteProjectSchemaBySource(sourceRelativePath: string): Promise<void>
-
 replaceProjectSchemaForSource(
   sourceRelativePath: string,
   lastUpdatedIso: string,
   chunkTexts: string[]
 ): Promise<void>
-
-queryProjectSchema(
-  queryText: string,
-  options?: QueryOptions
-): Promise<SchemaHit[]>
-
+queryProjectSchema(queryText: string, options?: QueryOptions): Promise<SchemaHit[]>
 queryProjectSchemaByTableNames(
   tableNames: string[],
   options?: QueryOptions
 ): Promise<SchemaHit[]>
-
 batchQueryProjectSchema(
   keywords: string[],
   options?: BatchQueryOptions
 ): Promise<SchemaHit[]>
-```
-
-## Types
-
-```ts
-interface QueryOptions {
-  minimal?: boolean;
-  maxTextChars?: number;
-  candidateLimit?: number;
-  maxChunksPerSource?: number;
-  topK?: number;
-}
-
-interface BatchQueryOptions extends QueryOptions {
-  mergedTopK?: number;
-}
-
-interface MemoryHit {
-  id: string;
-  text: string;
-  metadata: Record<string, unknown>;
-  distance: number;
-}
-
-interface SchemaHit {
-  id: string;
-  text: string;
-  source: string;
-  last_updated: string;
-  distance: number;
-}
 ```
 
 ## Development
@@ -307,4 +301,4 @@ npm test
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT. See [LICENSE](LICENSE).

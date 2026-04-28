@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 import * as path from "node:path";
 import * as fs from "node:fs/promises";
-import { configure, connect, resetConnection, getTableNames, tableExists, getConfig } from "../src/connection.js";
+import { configure, connect, resetConnection, getTableNames, tableExists, getConfig } from "../packages/core/src/connection.js";
 
 const TEST_DB_DIR = ".lancedb-test";
 

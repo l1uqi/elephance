@@ -1,42 +1,17 @@
 {
-  "name": "elephance",
+  "name": "elephance-workspace",
+  "private": true,
   "version": "0.1.0",
-  "description": "A lightweight LanceDB wrapper for vector storage, memory management, and schema retrieval",
+  "description": "Workspace for elephance core and MCP packages",
   "license": "MIT",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }
-  },
-  "files": [
-    "dist",
-    "assets"
+  "workspaces": [
+    "packages/*"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "npm run build --workspaces",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
     "prepublishOnly": "npm run build"
-  },
-  "engines": {
-    "node": ">=18"
-  },
-  "keywords": [
-    "lancedb",
-    "vector",
-    "embedding",
-    "memory",
-    "storage",
-    "semantic-search"
-  ],
-  "dependencies": {
-    "@lancedb/lancedb": "^0.27.2"
-  },
-  "peerDependencies": {
-    "openai": ">=4.0.0"
   },
   "devDependencies": {
     "@jest/globals": "^29.0.0",
