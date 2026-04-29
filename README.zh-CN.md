@@ -55,9 +55,12 @@ npm install @elephance/mcp openai
 
 只有使用默认 OpenAI 兼容 embedding provider 时才需要安装 `openai`。
 
-## npm 使用方式
+## 已发布的 npm 包
 
-包发布到 npm 后，应用开发者只需要安装自己会用到的部分。
+公开 npm 包：
+
+- [`@elephance/core`](https://www.npmjs.com/package/@elephance/core)
+- [`@elephance/mcp`](https://www.npmjs.com/package/@elephance/mcp)
 
 如果要在应用代码里调用 memory 和 schema API，安装核心 SDK：
 
@@ -73,17 +76,9 @@ npm install -g @elephance/mcp openai
 
 全局安装不是必须的。多数用户可以直接在 MCP 配置里使用 `npx -y @elephance/mcp`，MCP Client 会自动下载并运行 npm 上发布的包。
 
-从这个仓库发布 npm 包时，先发布核心包，因为 `@elephance/mcp` 依赖它：
-
-```bash
-npm run build
-npm publish --workspace @elephance/core
-npm publish --workspace @elephance/mcp
-```
-
 ## 本地开发使用
 
-如果你正在本地开发这个仓库，并且想让另一个本地项目在包发布前使用它，需要通过本地文件路径安装，而不是使用 npm registry 上的版本。
+如果你正在本地开发这个仓库，并且想让另一个本地项目使用你的工作副本，需要通过本地文件路径安装，而不是使用 npm registry 上的版本。
 
 安装核心 SDK：
 
@@ -171,7 +166,7 @@ npm run build
 
 ### 本地 MCP Server 配置
 
-如果你还没有发布 npm 包，只是在本地测试这个仓库，通常不需要把 `@elephance/mcp` 安装进目标项目。直接让 Cursor 指向本地构建后的 MCP Server 即可。
+如果你在本地测试这个仓库里的 MCP 改动，通常不需要把 `@elephance/mcp` 安装进目标项目。直接让 Cursor 指向本地构建后的 MCP Server 即可。
 
 先构建本仓库：
 

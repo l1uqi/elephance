@@ -21,7 +21,7 @@ npm install @elephance/mcp openai
 
 只有使用默认 embedding provider 时才需要安装 `openai`。
 
-也可以通过 `npx` 直接运行 npm 上发布的包：
+也可以通过 `npx` 直接运行：
 
 ```bash
 npx -y @elephance/mcp
@@ -60,7 +60,7 @@ npx -y @elephance/mcp
 
 ### 本地开发
 
-如果是在发布 npm 包前测试这个仓库，先构建 workspace，然后让 Cursor 指向本地 server 文件：
+如果要测试这个仓库里的本地改动，先构建 workspace，然后让 Cursor 指向本地 server 文件：
 
 ```bash
 npm run build

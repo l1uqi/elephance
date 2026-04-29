@@ -21,7 +21,7 @@ npm install @elephance/mcp openai
 
 `openai` is only required when you use the default embedding provider.
 
-You can also run the published package with `npx`:
+You can also run it directly with `npx`:
 
 ```bash
 npx -y @elephance/mcp
@@ -60,7 +60,7 @@ Restart Cursor after changing the MCP config.
 
 ### Local Development
 
-When testing this repository before publishing, build the workspace and point Cursor at the local server file:
+When testing local changes from this repository, build the workspace and point Cursor at the local server file:
 
 ```bash
 npm run build

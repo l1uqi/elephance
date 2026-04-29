@@ -55,9 +55,12 @@ npm install @elephance/mcp openai
 
 `openai` is only required when you use the default OpenAI-compatible embedding provider.
 
-## NPM Usage
+## Published Packages
 
-After the packages are published, application developers can install only the part they need.
+The public npm packages are:
+
+- [`@elephance/core`](https://www.npmjs.com/package/@elephance/core)
+- [`@elephance/mcp`](https://www.npmjs.com/package/@elephance/mcp)
 
 Use the SDK when calling memory and schema APIs from application code:
 
@@ -73,17 +76,9 @@ npm install -g @elephance/mcp openai
 
 Global installation is optional. Most users can let the MCP client run the package through `npx -y @elephance/mcp`, which downloads and runs the published npm package automatically.
 
-For npm publishing from this repository, publish the core package first because `@elephance/mcp` depends on it:
-
-```bash
-npm run build
-npm publish --workspace @elephance/core
-npm publish --workspace @elephance/mcp
-```
-
 ## Local Development Usage
 
-If you are developing this repository locally and want another local project to use it before the packages are published, install the packages from local file paths instead of npm registry versions.
+If you are developing this repository locally and want another local project to use your working copy, install the packages from local file paths instead of npm registry versions.
 
 For the core SDK:
 
@@ -171,7 +166,7 @@ Add the local LanceDB directory to the target app's `.gitignore` unless you inte
 
 ### Local MCP Server Setup
 
-If you are testing this repository before publishing, you usually do not need to install `@elephance/mcp` into the target app. Point Cursor directly at the locally built server.
+If you are testing local MCP changes from this repository, you usually do not need to install `@elephance/mcp` into the target app. Point Cursor directly at the locally built server.
 
 First build this repository:
 
