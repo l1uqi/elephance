@@ -1,4 +1,4 @@
-# elephance-mcp
+# @elephance/mcp
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
@@ -6,7 +6,7 @@ Stdio MCP server for `elephance`, exposing local LanceDB-backed memory and schem
 
 ## What It Provides
 
-`elephance-mcp` turns the core `elephance` SDK into MCP tools:
+`@elephance/mcp` turns the core `@elephance/core` SDK into MCP tools:
 
 - user memory write, search, and deletion
 - project schema write, deletion, semantic search, exact table lookup, and batch query
@@ -16,7 +16,7 @@ Stdio MCP server for `elephance`, exposing local LanceDB-backed memory and schem
 ## Install
 
 ```bash
-npm install elephance-mcp openai
+npm install @elephance/mcp openai
 ```
 
 `openai` is only required when you use the default embedding provider.
@@ -24,7 +24,7 @@ npm install elephance-mcp openai
 You can also run the published package with `npx`:
 
 ```bash
-npx -y elephance-mcp
+npx -y @elephance/mcp
 ```
 
 ## Cursor
@@ -36,7 +36,7 @@ Add this to your Cursor MCP configuration, usually at `C:\Users\<you>\.cursor\mc
   "mcpServers": {
     "elephance": {
       "command": "npx",
-      "args": ["-y", "elephance-mcp"],
+      "args": ["-y", "@elephance/mcp"],
       "env": {
         "ELEPHANCE_DB_PATH": "E:\\path\\to\\your-app\\.lancedb",
         "OPENAI_API_KEY": "your-api-key"
@@ -222,5 +222,5 @@ npm test
 Run the built server:
 
 ```bash
-npm --workspace elephance-mcp start
+npm --workspace @elephance/mcp start
 ```

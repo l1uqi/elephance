@@ -1,4 +1,4 @@
-# elephance-mcp
+# @elephance/mcp
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
@@ -6,7 +6,7 @@
 
 ## 它提供什么
 
-`elephance-mcp` 会把核心 `elephance` SDK 包装成 MCP tools：
+`@elephance/mcp` 会把核心 `@elephance/core` SDK 包装成 MCP tools：
 
 - 用户记忆写入、查询和删除
 - 项目 Schema 写入、删除、语义查询、精确表名查询和批量查询
@@ -16,7 +16,7 @@
 ## 安装
 
 ```bash
-npm install elephance-mcp openai
+npm install @elephance/mcp openai
 ```
 
 只有使用默认 embedding provider 时才需要安装 `openai`。
@@ -24,7 +24,7 @@ npm install elephance-mcp openai
 也可以通过 `npx` 直接运行 npm 上发布的包：
 
 ```bash
-npx -y elephance-mcp
+npx -y @elephance/mcp
 ```
 
 ## Cursor
@@ -36,7 +36,7 @@ npx -y elephance-mcp
   "mcpServers": {
     "elephance": {
       "command": "npx",
-      "args": ["-y", "elephance-mcp"],
+      "args": ["-y", "@elephance/mcp"],
       "env": {
         "ELEPHANCE_DB_PATH": "E:\\path\\to\\your-app\\.lancedb",
         "OPENAI_API_KEY": "your-api-key"
@@ -222,5 +222,5 @@ npm test
 运行构建后的 server：
 
 ```bash
-npm --workspace elephance-mcp start
+npm --workspace @elephance/mcp start
 ```

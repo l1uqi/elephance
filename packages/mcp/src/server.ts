@@ -15,7 +15,7 @@ import {
   upsertMemory,
   type BatchQueryOptions,
   type QueryOptions,
-} from "elephance";
+} from "@elephance/core";
 
 const DEFAULT_DB_PATH = process.env.ELEPHANCE_DB_PATH ?? ".lancedb";
 const DEFAULT_MEMORY_TABLE = process.env.ELEPHANCE_MEMORY_TABLE ?? "memory";

@@ -1,11 +1,11 @@
 {
-  "name": "elephance-mcp",
+  "name": "@elephance/mcp",
   "version": "0.1.0",
   "description": "MCP server for elephance local vector memory and schema retrieval",
   "license": "MIT",
   "type": "module",
   "bin": {
-    "elephance-mcp": "./dist/server.js"
+    "elephance-mcp": "dist/server.js"
   },
   "exports": {
     ".": {
@@ -36,7 +36,7 @@
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.11.0",
-    "elephance": "^0.1.0",
+    "@elephance/core": "^0.1.0",
     "zod": "^3.24.0"
   },
   "peerDependencies": {

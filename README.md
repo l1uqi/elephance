@@ -10,15 +10,15 @@ Local vector memory for AI apps, agents, and MCP clients.
 
 `elephance` wraps LanceDB with a small TypeScript API for durable user memory and project schema retrieval. This repository is a workspace: the core SDK lives in `packages/core`, and the MCP server lives in `packages/mcp`.
 
-[![npm version](https://img.shields.io/npm/v/elephance)](https://www.npmjs.com/package/elephance)
-[![MIT License](https://img.shields.io/npm/l/elephance)](LICENSE)
+[![npm version](https://img.shields.io/npm/v/%40elephance%2Fcore)](https://www.npmjs.com/package/@elephance/core)
+[![MIT License](https://img.shields.io/npm/l/%40elephance%2Fcore)](LICENSE)
 
 ## Packages
 
 | Package | Role | Docs |
 | --- | --- | --- |
-| `elephance` | Core TypeScript SDK for LanceDB-backed memory and schema retrieval. | [packages/core](packages/core) |
-| `elephance-mcp` | Stdio MCP server for Cursor and other MCP-compatible clients. | [packages/mcp](packages/mcp/README.md) |
+| `@elephance/core` | Core TypeScript SDK for LanceDB-backed memory and schema retrieval. | [packages/core](packages/core) |
+| `@elephance/mcp` | Stdio MCP server for Cursor and other MCP-compatible clients. | [packages/mcp](packages/mcp/README.md) |
 
 ## Use Cases
 
@@ -37,20 +37,20 @@ Local vector memory for AI apps, agents, and MCP clients.
 - An OpenAI-compatible embedding provider when using the default embedding setup.
 - `OPENAI_API_KEY` is required only when using the default OpenAI-compatible embedding provider.
 - Optional environment variables: `OPENAI_EMBEDDING_MODEL`, `OPENAI_RELAY_BASE_URL`, `OPENAI_BASE_URL`.
-- Cursor or another MCP-compatible client is only required when using `elephance-mcp`.
+- Cursor or another MCP-compatible client is only required when using `@elephance/mcp`.
 
 ## Install
 
 Core SDK:
 
 ```bash
-npm install elephance openai
+npm install @elephance/core openai
 ```
 
 MCP server:
 
 ```bash
-npm install elephance-mcp openai
+npm install @elephance/mcp openai
 ```
 
 `openai` is only required when you use the default OpenAI-compatible embedding provider.
@@ -62,23 +62,23 @@ After the packages are published, application developers can install only the pa
 Use the SDK when calling memory and schema APIs from application code:
 
 ```bash
-npm install elephance openai
+npm install @elephance/core openai
 ```
 
 Use the MCP server when connecting Cursor or another MCP client:
 
 ```bash
-npm install -g elephance-mcp openai
+npm install -g @elephance/mcp openai
 ```
 
-Global installation is optional. Most users can let the MCP client run the package through `npx -y elephance-mcp`, which downloads and runs the published npm package automatically.
+Global installation is optional. Most users can let the MCP client run the package through `npx -y @elephance/mcp`, which downloads and runs the published npm package automatically.
 
-For npm publishing from this repository, publish the core package first because `elephance-mcp` depends on it:
+For npm publishing from this repository, publish the core package first because `@elephance/mcp` depends on it:
 
 ```bash
 npm run build
-npm publish --workspace elephance
-npm publish --workspace elephance-mcp
+npm publish --workspace @elephance/core
+npm publish --workspace @elephance/mcp
 ```
 
 ## Local Development Usage
@@ -89,7 +89,7 @@ For the core SDK:
 
 ```powershell
 cd E:\path\to\your-app
-pnpm add "elephance@file:E:/github/lancedb-vector-store/packages/core" openai
+pnpm add "@elephance/core@file:E:/github/lancedb-vector-store/packages/core" openai
 ```
 
 Or add it manually to your app's `package.json`:
@@ -97,7 +97,7 @@ Or add it manually to your app's `package.json`:
 ```json
 {
   "dependencies": {
-    "elephance": "file:E:/github/lancedb-vector-store/packages/core",
+    "@elephance/core": "file:E:/github/lancedb-vector-store/packages/core",
     "openai": "^4.0.0"
   }
 }
@@ -109,17 +109,17 @@ Then install dependencies in your app:
 pnpm install
 ```
 
-If you install both the local MCP server and the local core SDK in another project, make sure the MCP server also resolves `elephance` to the local package:
+If you install both the local MCP server and the local core SDK in another project, make sure the MCP server also resolves `@elephance/core` to the local package:
 
 ```json
 {
   "dependencies": {
-    "elephance": "file:E:/github/lancedb-vector-store/packages/core",
-    "elephance-mcp": "file:E:/github/lancedb-vector-store/packages/mcp"
+    "@elephance/core": "file:E:/github/lancedb-vector-store/packages/core",
+    "@elephance/mcp": "file:E:/github/lancedb-vector-store/packages/mcp"
   },
   "pnpm": {
     "overrides": {
-      "elephance": "file:E:/github/lancedb-vector-store/packages/core"
+      "@elephance/core": "file:E:/github/lancedb-vector-store/packages/core"
     }
   }
 }
@@ -141,7 +141,7 @@ For Cursor-based development with the published npm package, add a server entry 
   "mcpServers": {
     "elephance": {
       "command": "npx",
-      "args": ["-y", "elephance-mcp"],
+      "args": ["-y", "@elephance/mcp"],
       "env": {
         "ELEPHANCE_DB_PATH": "E:\\path\\to\\your-app\\.lancedb",
         "OPENAI_API_KEY": "your-api-key"
@@ -171,7 +171,7 @@ Add the local LanceDB directory to the target app's `.gitignore` unless you inte
 
 ### Local MCP Server Setup
 
-If you are testing this repository before publishing, you usually do not need to install `elephance-mcp` into the target app. Point Cursor directly at the locally built server.
+If you are testing this repository before publishing, you usually do not need to install `@elephance/mcp` into the target app. Point Cursor directly at the locally built server.
 
 First build this repository:
 
@@ -202,7 +202,7 @@ Then add a server entry to Cursor's MCP config, usually at `C:\Users\<you>\.curs
 ## Quick Start
 
 ```ts
-import { configure, queryMemory, upsertMemory } from "elephance";
+import { configure, queryMemory, upsertMemory } from "@elephance/core";
 
 configure({
   dbPath: "./data/.lancedb",

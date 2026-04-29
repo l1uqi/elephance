@@ -47,11 +47,11 @@
 
       <section class="summary-grid" aria-label="Package summary">
         <article>
-          <strong>elephance</strong>
+          <strong>@elephance/core</strong>
           <span data-i18n="summary.core">Core SDK for memory and schema search.</span>
         </article>
         <article>
-          <strong>elephance-mcp</strong>
+          <strong>@elephance/mcp</strong>
           <span data-i18n="summary.mcp">Stdio MCP server for Cursor and compatible clients.</span>
         </article>
         <article>
@@ -65,8 +65,8 @@
           <p class="eyebrow" data-i18n="quick.eyebrow">Quick start</p>
           <h2 data-i18n="quick.title">Install and write a memory</h2>
         </div>
-        <pre><code>npm install elephance openai</code></pre>
-        <pre><code>import { configure, queryMemory, upsertMemory } from "elephance";
+        <pre><code>npm install @elephance/core openai</code></pre>
+        <pre><code>import { configure, queryMemory, upsertMemory } from "@elephance/core";
 
 configure({ dbPath: "./data/.lancedb" });
 
@@ -182,7 +182,7 @@ const hits = await queryMemory("How should I answer?", { topK: 3 });</code></pre
   "mcpServers": {
     "elephance": {
       "command": "npx",
-      "args": ["-y", "elephance-mcp"],
+      "args": ["-y", "@elephance/mcp"],
       "env": {
         "ELEPHANCE_DB_PATH": "E:\\path\\to\\your-app\\.lancedb",
         "OPENAI_API_KEY": "your-api-key",

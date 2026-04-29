@@ -11,7 +11,9 @@
   "scripts": {
     "build": "npm run build --workspaces",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "publish:npm": "node scripts/publish-npm.mjs",
+    "publish:npm:dry-run": "node scripts/publish-npm.mjs --dry-run"
   },
   "devDependencies": {
     "@jest/globals": "^29.0.0",

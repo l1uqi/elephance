@@ -10,15 +10,15 @@
 
 `elephance` 基于 LanceDB，提供一个轻量 TypeScript SDK，用来持久化用户记忆和项目 Schema。这个仓库是 workspace：核心 SDK 在 `packages/core`，MCP Server 在 `packages/mcp`。
 
-[![npm version](https://img.shields.io/npm/v/elephance)](https://www.npmjs.com/package/elephance)
-[![MIT License](https://img.shields.io/npm/l/elephance)](LICENSE)
+[![npm version](https://img.shields.io/npm/v/%40elephance%2Fcore)](https://www.npmjs.com/package/@elephance/core)
+[![MIT License](https://img.shields.io/npm/l/%40elephance%2Fcore)](LICENSE)
 
 ## 包结构
 
 | 包 | 作用 | 文档 |
 | --- | --- | --- |
-| `elephance` | 基于 LanceDB 的核心 TypeScript SDK，提供 memory 和 schema 检索能力。 | [packages/core](packages/core) |
-| `elephance-mcp` | stdio MCP Server，可接入 Cursor 和其他 MCP Client。 | [packages/mcp](packages/mcp/README.zh-CN.md) |
+| `@elephance/core` | 基于 LanceDB 的核心 TypeScript SDK，提供 memory 和 schema 检索能力。 | [packages/core](packages/core) |
+| `@elephance/mcp` | stdio MCP Server，可接入 Cursor 和其他 MCP Client。 | [packages/mcp](packages/mcp/README.zh-CN.md) |
 
 ## 适用场景
 
@@ -37,20 +37,20 @@
 - 使用默认 embedding 配置时，需要一个 OpenAI 兼容的 embedding provider。
 - 只有使用默认 OpenAI 兼容 embedding provider 时，才需要配置 `OPENAI_API_KEY`。
 - 可选环境变量：`OPENAI_EMBEDDING_MODEL`、`OPENAI_RELAY_BASE_URL`、`OPENAI_BASE_URL`。
-- 只有使用 `elephance-mcp` 时，才需要 Cursor 或其他 MCP 兼容客户端。
+- 只有使用 `@elephance/mcp` 时，才需要 Cursor 或其他 MCP 兼容客户端。
 
 ## 安装
 
 核心 SDK：
 
 ```bash
-npm install elephance openai
+npm install @elephance/core openai
 ```
 
 MCP Server：
 
 ```bash
-npm install elephance-mcp openai
+npm install @elephance/mcp openai
 ```
 
 只有使用默认 OpenAI 兼容 embedding provider 时才需要安装 `openai`。
@@ -62,23 +62,23 @@ npm install elephance-mcp openai
 如果要在应用代码里调用 memory 和 schema API，安装核心 SDK：
 
 ```bash
-npm install elephance openai
+npm install @elephance/core openai
 ```
 
 如果要接入 Cursor 或其他 MCP Client，安装 MCP Server：
 
 ```bash
-npm install -g elephance-mcp openai
+npm install -g @elephance/mcp openai
 ```
 
-全局安装不是必须的。多数用户可以直接在 MCP 配置里使用 `npx -y elephance-mcp`，MCP Client 会自动下载并运行 npm 上发布的包。
+全局安装不是必须的。多数用户可以直接在 MCP 配置里使用 `npx -y @elephance/mcp`，MCP Client 会自动下载并运行 npm 上发布的包。
 
-从这个仓库发布 npm 包时，先发布核心包，因为 `elephance-mcp` 依赖它：
+从这个仓库发布 npm 包时，先发布核心包，因为 `@elephance/mcp` 依赖它：
 
 ```bash
 npm run build
-npm publish --workspace elephance
-npm publish --workspace elephance-mcp
+npm publish --workspace @elephance/core
+npm publish --workspace @elephance/mcp
 ```
 
 ## 本地开发使用
@@ -89,7 +89,7 @@ npm publish --workspace elephance-mcp
 
 ```powershell
 cd E:\path\to\your-app
-pnpm add "elephance@file:E:/github/lancedb-vector-store/packages/core" openai
+pnpm add "@elephance/core@file:E:/github/lancedb-vector-store/packages/core" openai
 ```
 
 也可以手动写到目标项目的 `package.json`：
@@ -97,7 +97,7 @@ pnpm add "elephance@file:E:/github/lancedb-vector-store/packages/core" openai
 ```json
 {
   "dependencies": {
-    "elephance": "file:E:/github/lancedb-vector-store/packages/core",
+    "@elephance/core": "file:E:/github/lancedb-vector-store/packages/core",
     "openai": "^4.0.0"
   }
 }
@@ -109,17 +109,17 @@ pnpm add "elephance@file:E:/github/lancedb-vector-store/packages/core" openai
 pnpm install
 ```
 
-如果你在另一个项目里同时安装本地 MCP Server 和本地核心 SDK，需要确保 MCP Server 内部依赖的 `elephance` 也解析到本地包：
+如果你在另一个项目里同时安装本地 MCP Server 和本地核心 SDK，需要确保 MCP Server 内部依赖的 `@elephance/core` 也解析到本地包：
 
 ```json
 {
   "dependencies": {
-    "elephance": "file:E:/github/lancedb-vector-store/packages/core",
-    "elephance-mcp": "file:E:/github/lancedb-vector-store/packages/mcp"
+    "@elephance/core": "file:E:/github/lancedb-vector-store/packages/core",
+    "@elephance/mcp": "file:E:/github/lancedb-vector-store/packages/mcp"
   },
   "pnpm": {
     "overrides": {
-      "elephance": "file:E:/github/lancedb-vector-store/packages/core"
+      "@elephance/core": "file:E:/github/lancedb-vector-store/packages/core"
     }
   }
 }
@@ -141,7 +141,7 @@ npm run build
   "mcpServers": {
     "elephance": {
       "command": "npx",
-      "args": ["-y", "elephance-mcp"],
+      "args": ["-y", "@elephance/mcp"],
       "env": {
         "ELEPHANCE_DB_PATH": "E:\\path\\to\\your-app\\.lancedb",
         "OPENAI_API_KEY": "your-api-key"
@@ -171,7 +171,7 @@ npm run build
 
 ### 本地 MCP Server 配置
 
-如果你还没有发布 npm 包，只是在本地测试这个仓库，通常不需要把 `elephance-mcp` 安装进目标项目。直接让 Cursor 指向本地构建后的 MCP Server 即可。
+如果你还没有发布 npm 包，只是在本地测试这个仓库，通常不需要把 `@elephance/mcp` 安装进目标项目。直接让 Cursor 指向本地构建后的 MCP Server 即可。
 
 先构建本仓库：
 
@@ -202,7 +202,7 @@ npm run build
 ## 快速开始
 
 ```ts
-import { configure, queryMemory, upsertMemory } from "elephance";
+import { configure, queryMemory, upsertMemory } from "@elephance/core";
 
 configure({
   dbPath: "./data/.lancedb",

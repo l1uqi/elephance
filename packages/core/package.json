@@ -1,5 +1,5 @@
 {
-  "name": "elephance",
+  "name": "@elephance/core",
   "version": "0.1.0",
   "description": "A lightweight LanceDB wrapper for vector storage, memory management, and schema retrieval",
   "license": "MIT",
