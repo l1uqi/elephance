@@ -175,6 +175,7 @@ console.log(hits);
 
 ## Documentation
 
+- Static API website: [docs](docs)
 - Core SDK usage: [packages/core](packages/core)
 - MCP server usage: [packages/mcp/README.md](packages/mcp/README.md)
 - MCP server Chinese docs: [packages/mcp/README.zh-CN.md](packages/mcp/README.zh-CN.md)

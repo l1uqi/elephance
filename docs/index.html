@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="elephance API reference for local LanceDB vector memory, project schema retrieval, and Cursor MCP integration."
+    />
+    <title>elephance API</title>
+    <link rel="icon" href="./assets/elephance-logo.png" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="elephance API">
+        <img src="./assets/elephance-logo.png" alt="" />
+        <span>elephance</span>
+      </a>
+      <div class="header-actions">
+        <nav class="top-nav" aria-label="Primary navigation">
+          <a href="#sdk" data-i18n="nav.sdk">SDK</a>
+          <a href="#mcp" data-i18n="nav.mcp">MCP</a>
+          <a href="#config" data-i18n="nav.config">Config</a>
+          <a href="#deploy" data-i18n="nav.deploy">Deploy</a>
+        </nav>
+        <div class="language-toggle" aria-label="Language">
+          <button type="button" class="active" data-lang-button="en">EN</button>
+          <button type="button" data-lang-button="zh">中文</button>
+        </div>
+      </div>
+    </header>
+
+    <main id="top" class="page">
+      <section class="hero">
+        <p class="eyebrow" data-i18n="hero.eyebrow">Local vector memory</p>
+        <h1 data-i18n="hero.title">elephance API</h1>
+        <p class="lede" data-i18n="hero.lede">
+          A small TypeScript SDK and MCP server for local LanceDB memory,
+          project schema retrieval, and Cursor integration.
+        </p>
+        <div class="hero-actions">
+          <a class="button primary" href="#sdk" data-i18n="hero.sdk">View SDK</a>
+          <a class="button secondary" href="#mcp" data-i18n="hero.mcp">View MCP Tools</a>
+        </div>
+      </section>
+
+      <section class="summary-grid" aria-label="Package summary">
+        <article>
+          <strong>elephance</strong>
+          <span data-i18n="summary.core">Core SDK for memory and schema search.</span>
+        </article>
+        <article>
+          <strong>elephance-mcp</strong>
+          <span data-i18n="summary.mcp">Stdio MCP server for Cursor and compatible clients.</span>
+        </article>
+        <article>
+          <strong>LanceDB</strong>
+          <span data-i18n="summary.local">Local-first vector storage in a writable directory.</span>
+        </article>
+      </section>
+
+      <section class="content-section" id="quickstart">
+        <div class="section-title">
+          <p class="eyebrow" data-i18n="quick.eyebrow">Quick start</p>
+          <h2 data-i18n="quick.title">Install and write a memory</h2>
+        </div>
+        <pre><code>npm install elephance openai</code></pre>
+        <pre><code>import { configure, queryMemory, upsertMemory } from "elephance";
+
+configure({ dbPath: "./data/.lancedb" });
+
+await upsertMemory("The user prefers concise examples.", {
+  userId: "user-123",
+  label: "user_preference"
+});
+
+const hits = await queryMemory("How should I answer?", { topK: 3 });</code></pre>
+      </section>
+
+      <section class="content-section" id="sdk">
+        <div class="section-title">
+          <p class="eyebrow" data-i18n="sdk.eyebrow">TypeScript SDK</p>
+          <h2 data-i18n="sdk.title">Core API</h2>
+        </div>
+        <div class="api-list">
+          <article class="api-item">
+            <h3>configure(options)</h3>
+            <p data-i18n="sdk.configure">Configure the database path and table names.</p>
+            <pre><code>configure({
+  dbPath: ".lancedb",
+  memoryTable: "memory",
+  schemaTable: "project_schema"
+});</code></pre>
+          </article>
+          <article class="api-item">
+            <h3>upsertMemory(text, metadata)</h3>
+            <p data-i18n="sdk.upsert">Insert or update a short user memory.</p>
+            <pre><code>await upsertMemory("Use pnpm in this repo.", {
+  userId: "user-123",
+  label: "user_preference"
+});</code></pre>
+          </article>
+          <article class="api-item">
+            <h3>queryMemory(query, options)</h3>
+            <p data-i18n="sdk.queryMemory">Search stored memories by semantic similarity.</p>
+            <pre><code>const hits = await queryMemory("package manager", {
+  topK: 3
+});</code></pre>
+          </article>
+          <article class="api-item">
+            <h3>clearUserMemory(userId)</h3>
+            <p data-i18n="sdk.clear">Delete all memory rows for a user.</p>
+            <pre><code>await clearUserMemory("user-123");</code></pre>
+          </article>
+          <article class="api-item">
+            <h3>replaceProjectSchemaForSource(source, updatedAt, chunks)</h3>
+            <p data-i18n="sdk.replaceSchema">Replace all schema chunks for one source path.</p>
+            <pre><code>await replaceProjectSchemaForSource(
+  "tables/billing_invoice.md",
+  new Date().toISOString(),
+  ["## Fields\n- id\n- customer_id"]
+);</code></pre>
+          </article>
+          <article class="api-item">
+            <h3>queryProjectSchema(query, options)</h3>
+            <p data-i18n="sdk.querySchema">Retrieve relevant schema chunks by meaning.</p>
+            <pre><code>const schema = await queryProjectSchema("invoice payment join", {
+  minimal: true,
+  topK: 3
+});</code></pre>
+          </article>
+          <article class="api-item">
+            <h3>queryProjectSchemaByTableNames(tableNames, options)</h3>
+            <p data-i18n="sdk.tableNames">Fetch schema by exact table names.</p>
+            <pre><code>const schema = await queryProjectSchemaByTableNames([
+  "billing_invoice",
+  "billing_payment"
+]);</code></pre>
+          </article>
+          <article class="api-item">
+            <h3>batchQueryProjectSchema(keywords, options)</h3>
+            <p data-i18n="sdk.batch">Run multiple schema searches and merge duplicate sources.</p>
+            <pre><code>const schema = await batchQueryProjectSchema(
+  ["invoice", "payment", "customer"],
+  { mergedTopK: 4 }
+);</code></pre>
+          </article>
+        </div>
+      </section>
+
+      <section class="content-section" id="mcp">
+        <div class="section-title">
+          <p class="eyebrow" data-i18n="mcp.eyebrow">MCP Server</p>
+          <h2 data-i18n="mcp.title">Cursor tools</h2>
+        </div>
+        <div class="table">
+          <div class="table-row table-head">
+            <strong data-i18n="mcp.tool">Tool</strong>
+            <strong data-i18n="mcp.purpose">Purpose</strong>
+          </div>
+          <div class="table-row"><code>memory_upsert</code><span data-i18n="mcp.memoryUpsert">Store a short user memory.</span></div>
+          <div class="table-row"><code>memory_query</code><span data-i18n="mcp.memoryQuery">Search stored memories.</span></div>
+          <div class="table-row"><code>memory_clear_user</code><span data-i18n="mcp.memoryClear">Delete one user's memories.</span></div>
+          <div class="table-row"><code>schema_replace_source</code><span data-i18n="mcp.schemaReplace">Replace schema chunks for a source.</span></div>
+          <div class="table-row"><code>schema_delete_source</code><span data-i18n="mcp.schemaDelete">Delete schema chunks for a source.</span></div>
+          <div class="table-row"><code>schema_query</code><span data-i18n="mcp.schemaQuery">Search schema semantically.</span></div>
+          <div class="table-row"><code>schema_query_by_table_names</code><span data-i18n="mcp.schemaTables">Retrieve schema by table names.</span></div>
+          <div class="table-row"><code>schema_batch_query</code><span data-i18n="mcp.schemaBatch">Query multiple keywords and merge results.</span></div>
+        </div>
+      </section>
+
+      <section class="content-section" id="config">
+        <div class="section-title">
+          <p class="eyebrow" data-i18n="config.eyebrow">Configuration</p>
+          <h2 data-i18n="config.title">Cursor and environment</h2>
+        </div>
+        <pre><code>{
+  "mcpServers": {
+    "elephance-local": {
+      "command": "node",
+      "args": [
+        "E:\\github\\lancedb-vector-store\\packages\\mcp\\dist\\server.js"
+      ],
+      "env": {
+        "ELEPHANCE_DB_PATH": "E:\\path\\to\\your-app\\.lancedb",
+        "OPENAI_API_KEY": "your-api-key",
+        "OPENAI_RELAY_BASE_URL": "https://your-compatible-endpoint/v1"
+      }
+    }
+  }
+}</code></pre>
+        <div class="env-list">
+          <code>ELEPHANCE_DB_PATH</code>
+          <code>ELEPHANCE_MEMORY_TABLE</code>
+          <code>ELEPHANCE_SCHEMA_TABLE</code>
+          <code>OPENAI_API_KEY</code>
+          <code>OPENAI_EMBEDDING_MODEL</code>
+          <code>OPENAI_RELAY_BASE_URL</code>
+          <code>OPENAI_BASE_URL</code>
+          <code>MEMORY_OVERWRITE_LABELS</code>
+        </div>
+      </section>
+
+      <section class="content-section" id="deploy">
+        <div class="section-title">
+          <p class="eyebrow" data-i18n="deploy.eyebrow">GitHub Pages</p>
+          <h2 data-i18n="deploy.title">Deploy</h2>
+        </div>
+        <ol>
+          <li data-i18n="deploy.one">Commit the docs/ directory.</li>
+          <li data-i18n="deploy.two">Push the repository to GitHub.</li>
+          <li data-i18n="deploy.three">Open Settings, then Pages.</li>
+          <li data-i18n="deploy.four">Set the source folder to /docs.</li>
+        </ol>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>elephance</span>
+      <span data-i18n="footer">Local-first vector memory powered by LanceDB.</span>
+    </footer>
+
+    <script>
+      const translations = {
+        en: {
+          "nav.sdk": "SDK",
+          "nav.mcp": "MCP",
+          "nav.config": "Config",
+          "nav.deploy": "Deploy",
+          "hero.eyebrow": "Local vector memory",
+          "hero.title": "elephance API",
+          "hero.lede": "A small TypeScript SDK and MCP server for local LanceDB memory, project schema retrieval, and Cursor integration.",
+          "hero.sdk": "View SDK",
+          "hero.mcp": "View MCP Tools",
+          "summary.core": "Core SDK for memory and schema search.",
+          "summary.mcp": "Stdio MCP server for Cursor and compatible clients.",
+          "summary.local": "Local-first vector storage in a writable directory.",
+          "quick.eyebrow": "Quick start",
+          "quick.title": "Install and write a memory",
+          "sdk.eyebrow": "TypeScript SDK",
+          "sdk.title": "Core API",
+          "sdk.configure": "Configure the database path and table names.",
+          "sdk.upsert": "Insert or update a short user memory.",
+          "sdk.queryMemory": "Search stored memories by semantic similarity.",
+          "sdk.clear": "Delete all memory rows for a user.",
+          "sdk.replaceSchema": "Replace all schema chunks for one source path.",
+          "sdk.querySchema": "Retrieve relevant schema chunks by meaning.",
+          "sdk.tableNames": "Fetch schema by exact table names.",
+          "sdk.batch": "Run multiple schema searches and merge duplicate sources.",
+          "mcp.eyebrow": "MCP Server",
+          "mcp.title": "Cursor tools",
+          "mcp.tool": "Tool",
+          "mcp.purpose": "Purpose",
+          "mcp.memoryUpsert": "Store a short user memory.",
+          "mcp.memoryQuery": "Search stored memories.",
+          "mcp.memoryClear": "Delete one user's memories.",
+          "mcp.schemaReplace": "Replace schema chunks for a source.",
+          "mcp.schemaDelete": "Delete schema chunks for a source.",
+          "mcp.schemaQuery": "Search schema semantically.",
+          "mcp.schemaTables": "Retrieve schema by table names.",
+          "mcp.schemaBatch": "Query multiple keywords and merge results.",
+          "config.eyebrow": "Configuration",
+          "config.title": "Cursor and environment",
+          "deploy.eyebrow": "GitHub Pages",
+          "deploy.title": "Deploy",
+          "deploy.one": "Commit the docs/ directory.",
+          "deploy.two": "Push the repository to GitHub.",
+          "deploy.three": "Open Settings, then Pages.",
+          "deploy.four": "Set the source folder to /docs.",
+          "footer": "Local-first vector memory powered by LanceDB."
+        },
+        zh: {
+          "nav.sdk": "SDK",
+          "nav.mcp": "MCP",
+          "nav.config": "配置",
+          "nav.deploy": "部署",
+          "hero.eyebrow": "本地向量记忆",
+          "hero.title": "elephance API",
+          "hero.lede": "一个轻量 TypeScript SDK 和 MCP Server，用于本地 LanceDB 记忆、项目 Schema 检索和 Cursor 接入。",
+          "hero.sdk": "查看 SDK",
+          "hero.mcp": "查看 MCP Tools",
+          "summary.core": "提供 memory 和 schema 检索能力的核心 SDK。",
+          "summary.mcp": "面向 Cursor 和其他 MCP Client 的 stdio MCP Server。",
+          "summary.local": "本地优先的向量存储，数据写入指定本地目录。",
+          "quick.eyebrow": "快速开始",
+          "quick.title": "安装并写入第一条记忆",
+          "sdk.eyebrow": "TypeScript SDK",
+          "sdk.title": "核心 API",
+          "sdk.configure": "配置数据库路径和表名。",
+          "sdk.upsert": "写入或更新一条短用户记忆。",
+          "sdk.queryMemory": "按语义相似度检索已存记忆。",
+          "sdk.clear": "删除某个用户的全部记忆。",
+          "sdk.replaceSchema": "替换某个 source path 下的全部 schema 分块。",
+          "sdk.querySchema": "按语义检索相关 schema 分块。",
+          "sdk.tableNames": "按精确表名获取 schema。",
+          "sdk.batch": "使用多个关键词查询 schema，并合并重复来源。",
+          "mcp.eyebrow": "MCP Server",
+          "mcp.title": "Cursor Tools",
+          "mcp.tool": "Tool",
+          "mcp.purpose": "作用",
+          "mcp.memoryUpsert": "写入一条短用户记忆。",
+          "mcp.memoryQuery": "检索已存记忆。",
+          "mcp.memoryClear": "删除某个用户的记忆。",
+          "mcp.schemaReplace": "替换某个来源的 schema 分块。",
+          "mcp.schemaDelete": "删除某个来源的 schema 分块。",
+          "mcp.schemaQuery": "按语义检索 schema。",
+          "mcp.schemaTables": "按表名获取 schema。",
+          "mcp.schemaBatch": "多关键词查询并合并结果。",
+          "config.eyebrow": "配置",
+          "config.title": "Cursor 和环境变量",
+          "deploy.eyebrow": "GitHub Pages",
+          "deploy.title": "部署",
+          "deploy.one": "提交 docs/ 目录。",
+          "deploy.two": "推送仓库到 GitHub。",
+          "deploy.three": "打开 Settings，然后进入 Pages。",
+          "deploy.four": "把发布目录设置为 /docs。",
+          "footer": "基于 LanceDB 的本地优先向量记忆。"
+        }
+      };
+
+      const buttons = document.querySelectorAll("[data-lang-button]");
+      const nodes = document.querySelectorAll("[data-i18n]");
+
+      function setLanguage(lang) {
+        const dict = translations[lang] || translations.en;
+        document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+        nodes.forEach((node) => {
+          const key = node.getAttribute("data-i18n");
+          if (dict[key]) node.textContent = dict[key];
+        });
+        buttons.forEach((button) => {
+          button.classList.toggle("active", button.dataset.langButton === lang);
+        });
+        localStorage.setItem("elephance-docs-lang", lang);
+      }
+
+      buttons.forEach((button) => {
+        button.addEventListener("click", () => setLanguage(button.dataset.langButton));
+      });
+
+      const saved = localStorage.getItem("elephance-docs-lang");
+      const preferred = navigator.language && navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en";
+      setLanguage(saved || preferred);
+    </script>
+  </body>
+</html>

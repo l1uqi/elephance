@@ -175,6 +175,7 @@ console.log(hits);
 
 ## 文档入口
 
+- 静态 API 网站：[docs](docs)
 - 核心 SDK 用法：[packages/core](packages/core)
 - MCP Server 英文文档：[packages/mcp/README.md](packages/mcp/README.md)
 - MCP Server 中文文档：[packages/mcp/README.zh-CN.md](packages/mcp/README.zh-CN.md)
