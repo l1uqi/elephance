@@ -23,10 +23,21 @@
 ## 适用场景
 
 - 给 AI 助手增加本地持久记忆。
+- 为 Cursor 等 MCP Client 扩展可本地检索、可跨会话保留的记忆。
+- 在当前聊天上下文不够用时，检索相关的项目上下文。
 - 保存用户偏好、笔记、摘要或事实。
 - 为 SQL 生成和代码理解检索项目 Schema。
 - 用 LanceDB 保持本地优先的向量存储。
 - 同一套记忆层既可以通过 SDK 调用，也可以通过 MCP tools 调用。
+
+## 环境要求
+
+- Node.js 18 或更高版本。
+- 一个可写入的本地目录用于保存 LanceDB 数据，例如 `./data/.lancedb` 或 `.lancedb`。
+- 使用默认 embedding 配置时，需要一个 OpenAI 兼容的 embedding provider。
+- 只有使用默认 OpenAI 兼容 embedding provider 时，才需要配置 `OPENAI_API_KEY`。
+- 可选环境变量：`OPENAI_EMBEDDING_MODEL`、`OPENAI_RELAY_BASE_URL`、`OPENAI_BASE_URL`。
+- 只有使用 `elephance-mcp` 时，才需要 Cursor 或其他 MCP 兼容客户端。
 
 ## 安装
 
@@ -43,6 +54,103 @@ npm install elephance-mcp openai
 ```
 
 只有使用默认 OpenAI 兼容 embedding provider 时才需要安装 `openai`。
+
+## 本地开发使用
+
+如果你正在本地开发这个仓库，并且想让另一个本地项目在包发布前使用它，需要通过本地文件路径安装，而不是使用 npm registry 上的版本。
+
+安装核心 SDK：
+
+```powershell
+cd E:\path\to\your-app
+pnpm add "elephance@file:E:/github/lancedb-vector-store/packages/core" openai
+```
+
+也可以手动写到目标项目的 `package.json`：
+
+```json
+{
+  "dependencies": {
+    "elephance": "file:E:/github/lancedb-vector-store/packages/core",
+    "openai": "^4.0.0"
+  }
+}
+```
+
+然后在目标项目里安装依赖：
+
+```bash
+pnpm install
+```
+
+如果你在另一个项目里同时安装本地 MCP Server 和本地核心 SDK，需要确保 MCP Server 内部依赖的 `elephance` 也解析到本地包：
+
+```json
+{
+  "dependencies": {
+    "elephance": "file:E:/github/lancedb-vector-store/packages/core",
+    "elephance-mcp": "file:E:/github/lancedb-vector-store/packages/mcp"
+  },
+  "pnpm": {
+    "overrides": {
+      "elephance": "file:E:/github/lancedb-vector-store/packages/core"
+    }
+  }
+}
+```
+
+修改源码后，在本仓库重新构建：
+
+```powershell
+cd E:\github\lancedb-vector-store
+npm run build
+```
+
+## Cursor MCP 配置
+
+如果你的目标项目基于 Cursor 开发，通常不需要把 `elephance-mcp` 安装进目标项目。直接让 Cursor 指向本地构建后的 MCP Server 即可。
+
+先构建本仓库：
+
+```powershell
+cd E:\github\lancedb-vector-store
+npm run build
+```
+
+然后在 Cursor 的 MCP 配置中加入本地 server。配置文件通常是 `C:\Users\<you>\.cursor\mcp.json`：
+
+```json
+{
+  "mcpServers": {
+    "elephance-local": {
+      "command": "node",
+      "args": [
+        "E:\\github\\lancedb-vector-store\\packages\\mcp\\dist\\server.js"
+      ],
+      "env": {
+        "ELEPHANCE_DB_PATH": "E:\\path\\to\\your-app\\.lancedb",
+        "OPENAI_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
+
+如果使用 OpenAI 兼容代理，再加：
+
+```json
+{
+  "OPENAI_RELAY_BASE_URL": "https://your-compatible-endpoint/v1"
+}
+```
+
+更新 MCP 配置后重启 Cursor。Server 会提供 `memory_upsert`、`memory_query`、`schema_replace_source`、`schema_query` 等 tools。
+
+除非你明确想提交本地向量数据，否则建议把目标项目里的 LanceDB 目录加入 `.gitignore`：
+
+```gitignore
+.lancedb
+```
 
 ## 快速开始
 

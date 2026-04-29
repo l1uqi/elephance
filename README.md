@@ -23,10 +23,21 @@ Local vector memory for AI apps, agents, and MCP clients.
 ## Use Cases
 
 - Give an AI assistant durable local memory.
+- Extend Cursor and other MCP clients with local, searchable memory across sessions.
+- Retrieve relevant project context when the active chat context is too small.
 - Store user preferences, notes, summaries, or facts.
 - Retrieve project schema for SQL generation and code understanding.
 - Keep vectors local-first with LanceDB.
 - Reuse the same memory layer through SDK calls or MCP tools.
+
+## Requirements
+
+- Node.js 18 or later.
+- A writable local directory for LanceDB data, such as `./data/.lancedb` or `.lancedb`.
+- An OpenAI-compatible embedding provider when using the default embedding setup.
+- `OPENAI_API_KEY` is required only when using the default OpenAI-compatible embedding provider.
+- Optional environment variables: `OPENAI_EMBEDDING_MODEL`, `OPENAI_RELAY_BASE_URL`, `OPENAI_BASE_URL`.
+- Cursor or another MCP-compatible client is only required when using `elephance-mcp`.
 
 ## Install
 
@@ -43,6 +54,103 @@ npm install elephance-mcp openai
 ```
 
 `openai` is only required when you use the default OpenAI-compatible embedding provider.
+
+## Local Development Usage
+
+If you are developing this repository locally and want another local project to use it before the packages are published, install the packages from local file paths instead of npm registry versions.
+
+For the core SDK:
+
+```powershell
+cd E:\path\to\your-app
+pnpm add "elephance@file:E:/github/lancedb-vector-store/packages/core" openai
+```
+
+Or add it manually to your app's `package.json`:
+
+```json
+{
+  "dependencies": {
+    "elephance": "file:E:/github/lancedb-vector-store/packages/core",
+    "openai": "^4.0.0"
+  }
+}
+```
+
+Then install dependencies in your app:
+
+```bash
+pnpm install
+```
+
+If you install both the local MCP server and the local core SDK in another project, make sure the MCP server also resolves `elephance` to the local package:
+
+```json
+{
+  "dependencies": {
+    "elephance": "file:E:/github/lancedb-vector-store/packages/core",
+    "elephance-mcp": "file:E:/github/lancedb-vector-store/packages/mcp"
+  },
+  "pnpm": {
+    "overrides": {
+      "elephance": "file:E:/github/lancedb-vector-store/packages/core"
+    }
+  }
+}
+```
+
+Build this repository after changing source code:
+
+```powershell
+cd E:\github\lancedb-vector-store
+npm run build
+```
+
+## Cursor MCP Setup
+
+For Cursor-based development, you usually do not need to install `elephance-mcp` into the target app. Point Cursor directly at the locally built server.
+
+First build this repository:
+
+```powershell
+cd E:\github\lancedb-vector-store
+npm run build
+```
+
+Then add a server entry to Cursor's MCP config, usually at `C:\Users\<you>\.cursor\mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "elephance-local": {
+      "command": "node",
+      "args": [
+        "E:\\github\\lancedb-vector-store\\packages\\mcp\\dist\\server.js"
+      ],
+      "env": {
+        "ELEPHANCE_DB_PATH": "E:\\path\\to\\your-app\\.lancedb",
+        "OPENAI_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
+
+If you use an OpenAI-compatible relay, add:
+
+```json
+{
+  "OPENAI_RELAY_BASE_URL": "https://your-compatible-endpoint/v1"
+}
+```
+
+Restart Cursor after updating the MCP config. The server exposes tools such as `memory_upsert`, `memory_query`, `schema_replace_source`, and `schema_query`.
+
+Add the local LanceDB directory to the target app's `.gitignore` unless you intentionally want to commit local vector data:
+
+```gitignore
+.lancedb
+```
 
 ## Quick Start
 
