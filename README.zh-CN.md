@@ -55,6 +55,32 @@ npm install elephance-mcp openai
 
 只有使用默认 OpenAI 兼容 embedding provider 时才需要安装 `openai`。
 
+## npm 使用方式
+
+包发布到 npm 后，应用开发者只需要安装自己会用到的部分。
+
+如果要在应用代码里调用 memory 和 schema API，安装核心 SDK：
+
+```bash
+npm install elephance openai
+```
+
+如果要接入 Cursor 或其他 MCP Client，安装 MCP Server：
+
+```bash
+npm install -g elephance-mcp openai
+```
+
+全局安装不是必须的。多数用户可以直接在 MCP 配置里使用 `npx -y elephance-mcp`，MCP Client 会自动下载并运行 npm 上发布的包。
+
+从这个仓库发布 npm 包时，先发布核心包，因为 `elephance-mcp` 依赖它：
+
+```bash
+npm run build
+npm publish --workspace elephance
+npm publish --workspace elephance-mcp
+```
+
 ## 本地开发使用
 
 如果你正在本地开发这个仓库，并且想让另一个本地项目在包发布前使用它，需要通过本地文件路径安装，而不是使用 npm registry 上的版本。
@@ -108,7 +134,44 @@ npm run build
 
 ## Cursor MCP 配置
 
-如果你的目标项目基于 Cursor 开发，通常不需要把 `elephance-mcp` 安装进目标项目。直接让 Cursor 指向本地构建后的 MCP Server 即可。
+如果使用 npm 上发布的包，在 Cursor 的 MCP 配置中加入 server。配置文件通常是 `C:\Users\<you>\.cursor\mcp.json`：
+
+```json
+{
+  "mcpServers": {
+    "elephance": {
+      "command": "npx",
+      "args": ["-y", "elephance-mcp"],
+      "env": {
+        "ELEPHANCE_DB_PATH": "E:\\path\\to\\your-app\\.lancedb",
+        "OPENAI_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
+
+建议把 `ELEPHANCE_DB_PATH` 写成绝对路径，这样数据会稳定写入同一个目录。相对路径如 `.lancedb` 会取决于 MCP Client 启动 server 时的工作目录。
+
+如果使用 OpenAI 兼容代理，把代理地址加到 `env` 里：
+
+```json
+{
+  "OPENAI_RELAY_BASE_URL": "https://your-compatible-endpoint/v1"
+}
+```
+
+更新 MCP 配置后重启 Cursor。Server 会提供 `memory_upsert`、`memory_query`、`schema_replace_source`、`schema_query` 等 tools。
+
+除非你明确想提交本地向量数据，否则建议把目标项目里的 LanceDB 目录加入 `.gitignore`：
+
+```gitignore
+.lancedb
+```
+
+### 本地 MCP Server 配置
+
+如果你还没有发布 npm 包，只是在本地测试这个仓库，通常不需要把 `elephance-mcp` 安装进目标项目。直接让 Cursor 指向本地构建后的 MCP Server 即可。
 
 先构建本仓库：
 
@@ -134,22 +197,6 @@ npm run build
     }
   }
 }
-```
-
-如果使用 OpenAI 兼容代理，再加：
-
-```json
-{
-  "OPENAI_RELAY_BASE_URL": "https://your-compatible-endpoint/v1"
-}
-```
-
-更新 MCP 配置后重启 Cursor。Server 会提供 `memory_upsert`、`memory_query`、`schema_replace_source`、`schema_query` 等 tools。
-
-除非你明确想提交本地向量数据，否则建议把目标项目里的 LanceDB 目录加入 `.gitignore`：
-
-```gitignore
-.lancedb
 ```
 
 ## 快速开始

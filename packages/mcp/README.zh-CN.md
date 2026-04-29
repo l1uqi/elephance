@@ -21,24 +21,24 @@ npm install elephance-mcp openai
 
 只有使用默认 embedding provider 时才需要安装 `openai`。
 
-也可以通过 `npx` 直接运行：
+也可以通过 `npx` 直接运行 npm 上发布的包：
 
 ```bash
-npx elephance-mcp
+npx -y elephance-mcp
 ```
 
 ## Cursor
 
-在 Cursor MCP 配置中加入：
+在 Cursor MCP 配置中加入，Windows 上通常是 `C:\Users\<you>\.cursor\mcp.json`：
 
 ```json
 {
   "mcpServers": {
     "elephance": {
       "command": "npx",
-      "args": ["elephance-mcp"],
+      "args": ["-y", "elephance-mcp"],
       "env": {
-        "ELEPHANCE_DB_PATH": ".lancedb",
+        "ELEPHANCE_DB_PATH": "E:\\path\\to\\your-app\\.lancedb",
         "OPENAI_API_KEY": "your-api-key"
       }
     }
@@ -46,7 +46,44 @@ npx elephance-mcp
 }
 ```
 
-如果希望多个项目或工具共享同一个记忆库，建议把 `ELEPHANCE_DB_PATH` 配成绝对路径。
+建议把 `ELEPHANCE_DB_PATH` 写成绝对路径，这样数据会稳定写入同一个目录。相对路径如 `.lancedb` 会取决于 MCP Client 启动 server 时的工作目录。
+
+如果使用 OpenAI 兼容代理，把代理地址加到 `env` 里：
+
+```json
+{
+  "OPENAI_RELAY_BASE_URL": "https://your-compatible-endpoint/v1"
+}
+```
+
+修改 MCP 配置后重启 Cursor。
+
+### 本地开发
+
+如果是在发布 npm 包前测试这个仓库，先构建 workspace，然后让 Cursor 指向本地 server 文件：
+
+```bash
+npm run build
+```
+
+```json
+{
+  "mcpServers": {
+    "elephance-local": {
+      "command": "node",
+      "args": [
+        "E:\\github\\lancedb-vector-store\\packages\\mcp\\dist\\server.js"
+      ],
+      "env": {
+        "ELEPHANCE_DB_PATH": "E:\\path\\to\\your-app\\.lancedb",
+        "OPENAI_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
+
+除非你明确想提交本地向量数据，否则把目标项目里的 `.lancedb` 加入 `.gitignore`。
 
 ## 环境变量
 

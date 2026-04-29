@@ -55,6 +55,32 @@ npm install elephance-mcp openai
 
 `openai` is only required when you use the default OpenAI-compatible embedding provider.
 
+## NPM Usage
+
+After the packages are published, application developers can install only the part they need.
+
+Use the SDK when calling memory and schema APIs from application code:
+
+```bash
+npm install elephance openai
+```
+
+Use the MCP server when connecting Cursor or another MCP client:
+
+```bash
+npm install -g elephance-mcp openai
+```
+
+Global installation is optional. Most users can let the MCP client run the package through `npx -y elephance-mcp`, which downloads and runs the published npm package automatically.
+
+For npm publishing from this repository, publish the core package first because `elephance-mcp` depends on it:
+
+```bash
+npm run build
+npm publish --workspace elephance
+npm publish --workspace elephance-mcp
+```
+
 ## Local Development Usage
 
 If you are developing this repository locally and want another local project to use it before the packages are published, install the packages from local file paths instead of npm registry versions.
@@ -108,7 +134,44 @@ npm run build
 
 ## Cursor MCP Setup
 
-For Cursor-based development, you usually do not need to install `elephance-mcp` into the target app. Point Cursor directly at the locally built server.
+For Cursor-based development with the published npm package, add a server entry to Cursor's MCP config, usually at `C:\Users\<you>\.cursor\mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "elephance": {
+      "command": "npx",
+      "args": ["-y", "elephance-mcp"],
+      "env": {
+        "ELEPHANCE_DB_PATH": "E:\\path\\to\\your-app\\.lancedb",
+        "OPENAI_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
+
+Use an absolute `ELEPHANCE_DB_PATH` for predictable storage. A relative path such as `.lancedb` depends on the directory where the MCP client starts the server.
+
+If you use an OpenAI-compatible relay, add it inside `env`:
+
+```json
+{
+  "OPENAI_RELAY_BASE_URL": "https://your-compatible-endpoint/v1"
+}
+```
+
+Restart Cursor after updating the MCP config. The server exposes tools such as `memory_upsert`, `memory_query`, `schema_replace_source`, and `schema_query`.
+
+Add the local LanceDB directory to the target app's `.gitignore` unless you intentionally want to commit local vector data:
+
+```gitignore
+.lancedb
+```
+
+### Local MCP Server Setup
+
+If you are testing this repository before publishing, you usually do not need to install `elephance-mcp` into the target app. Point Cursor directly at the locally built server.
 
 First build this repository:
 
@@ -134,22 +197,6 @@ Then add a server entry to Cursor's MCP config, usually at `C:\Users\<you>\.curs
     }
   }
 }
-```
-
-If you use an OpenAI-compatible relay, add:
-
-```json
-{
-  "OPENAI_RELAY_BASE_URL": "https://your-compatible-endpoint/v1"
-}
-```
-
-Restart Cursor after updating the MCP config. The server exposes tools such as `memory_upsert`, `memory_query`, `schema_replace_source`, and `schema_query`.
-
-Add the local LanceDB directory to the target app's `.gitignore` unless you intentionally want to commit local vector data:
-
-```gitignore
-.lancedb
 ```
 
 ## Quick Start

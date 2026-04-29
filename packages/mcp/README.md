@@ -21,24 +21,24 @@ npm install elephance-mcp openai
 
 `openai` is only required when you use the default embedding provider.
 
-You can also run it with `npx`:
+You can also run the published package with `npx`:
 
 ```bash
-npx elephance-mcp
+npx -y elephance-mcp
 ```
 
 ## Cursor
 
-Add this to your Cursor MCP configuration:
+Add this to your Cursor MCP configuration, usually at `C:\Users\<you>\.cursor\mcp.json` on Windows:
 
 ```json
 {
   "mcpServers": {
     "elephance": {
       "command": "npx",
-      "args": ["elephance-mcp"],
+      "args": ["-y", "elephance-mcp"],
       "env": {
-        "ELEPHANCE_DB_PATH": ".lancedb",
+        "ELEPHANCE_DB_PATH": "E:\\path\\to\\your-app\\.lancedb",
         "OPENAI_API_KEY": "your-api-key"
       }
     }
@@ -46,7 +46,44 @@ Add this to your Cursor MCP configuration:
 }
 ```
 
-Use an absolute `ELEPHANCE_DB_PATH` if you want multiple projects or tools to share the same memory database.
+Use an absolute `ELEPHANCE_DB_PATH` for predictable storage. A relative path such as `.lancedb` depends on the working directory used by the MCP client.
+
+If you use an OpenAI-compatible relay, add it inside `env`:
+
+```json
+{
+  "OPENAI_RELAY_BASE_URL": "https://your-compatible-endpoint/v1"
+}
+```
+
+Restart Cursor after changing the MCP config.
+
+### Local Development
+
+When testing this repository before publishing, build the workspace and point Cursor at the local server file:
+
+```bash
+npm run build
+```
+
+```json
+{
+  "mcpServers": {
+    "elephance-local": {
+      "command": "node",
+      "args": [
+        "E:\\github\\lancedb-vector-store\\packages\\mcp\\dist\\server.js"
+      ],
+      "env": {
+        "ELEPHANCE_DB_PATH": "E:\\path\\to\\your-app\\.lancedb",
+        "OPENAI_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
+
+Add `.lancedb` to your target app's `.gitignore` unless you intentionally want to commit local vector data.
 
 ## Environment Variables
 

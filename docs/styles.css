@@ -225,6 +225,7 @@ h3 {
 .summary-grid span,
 .api-item p,
 .table span,
+.section-copy,
 li {
   color: var(--muted);
 }
@@ -236,6 +237,11 @@ li {
 
 .section-title {
   margin-bottom: 18px;
+}
+
+.section-copy {
+  max-width: 760px;
+  margin: 0 0 12px;
 }
 
 pre {
