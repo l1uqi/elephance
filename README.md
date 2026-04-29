@@ -41,102 +41,40 @@ Local vector memory for AI apps, agents, and MCP clients.
 
 ## Install
 
-Core SDK:
+Use the core SDK from application code:
 
 ```bash
 npm install @elephance/core openai
 ```
 
-MCP server:
+Use the MCP server from Cursor or another MCP client:
 
 ```bash
-npm install @elephance/mcp openai
+npm install @elephance/mcp
 ```
 
-`openai` is only required when you use the default OpenAI-compatible embedding provider.
+`@elephance/mcp` installs the OpenAI SDK it needs at runtime. When using the default OpenAI-compatible embedding provider, you only need to configure `OPENAI_API_KEY`.
 
 ## Published Packages
-
-The public npm packages are:
 
 - [`@elephance/core`](https://www.npmjs.com/package/@elephance/core)
 - [`@elephance/mcp`](https://www.npmjs.com/package/@elephance/mcp)
 
-Use the SDK when calling memory and schema APIs from application code:
-
-```bash
-npm install @elephance/core openai
-```
-
-Use the MCP server when connecting Cursor or another MCP client:
-
-```bash
-npm install -g @elephance/mcp openai
-```
-
-Global installation is optional. Most users can let the MCP client run the package through `npx -y @elephance/mcp`, which downloads and runs the published npm package automatically.
-
-## Local Development Usage
-
-If you are developing this repository locally and want another local project to use your working copy, install the packages from local file paths instead of npm registry versions.
-
-For the core SDK:
-
-```powershell
-cd E:\path\to\your-app
-pnpm add "@elephance/core@file:E:/github/lancedb-vector-store/packages/core" openai
-```
-
-Or add it manually to your app's `package.json`:
-
-```json
-{
-  "dependencies": {
-    "@elephance/core": "file:E:/github/lancedb-vector-store/packages/core",
-    "openai": "^4.0.0"
-  }
-}
-```
-
-Then install dependencies in your app:
-
-```bash
-pnpm install
-```
-
-If you install both the local MCP server and the local core SDK in another project, make sure the MCP server also resolves `@elephance/core` to the local package:
-
-```json
-{
-  "dependencies": {
-    "@elephance/core": "file:E:/github/lancedb-vector-store/packages/core",
-    "@elephance/mcp": "file:E:/github/lancedb-vector-store/packages/mcp"
-  },
-  "pnpm": {
-    "overrides": {
-      "@elephance/core": "file:E:/github/lancedb-vector-store/packages/core"
-    }
-  }
-}
-```
-
-Build this repository after changing source code:
-
-```powershell
-cd E:\github\lancedb-vector-store
-npm run build
-```
-
 ## Cursor MCP Setup
 
-For Cursor-based development with the published npm package, add a server entry to Cursor's MCP config, usually at `C:\Users\<you>\.cursor\mcp.json`:
+For Cursor-based development with the published npm package, add a server entry to Cursor's MCP config, usually at `C:\Users\<you>\.cursor\mcp.json` on Windows:
 
 ```json
 {
   "mcpServers": {
     "elephance": {
       "command": "npx",
-      "args": ["-y", "@elephance/mcp"],
+      "args": [
+        "-y",
+        "--package",
+        "@elephance/mcp",
+        "elephance-mcp"
+      ],
       "env": {
         "ELEPHANCE_DB_PATH": "E:\\path\\to\\your-app\\.lancedb",
         "OPENAI_API_KEY": "your-api-key"
@@ -144,6 +82,14 @@ For Cursor-based development with the published npm package, add a server entry 
     }
   }
 }
+```
+
+`npx` downloads `@elephance/mcp` and its dependencies from the currently configured npm registry. The explicit `--package @elephance/mcp` plus `elephance-mcp` command avoids relying on npm's bin inference for scoped packages.
+
+If your npm registry uses a mirror and Cursor logs a 404 for `@elephance/core`, change `args` to explicitly use the official registry:
+
+```json
+"args": ["-y", "--registry=https://registry.npmjs.org", "--package", "@elephance/mcp", "elephance-mcp"]
 ```
 
 Use an absolute `ELEPHANCE_DB_PATH` for predictable storage. A relative path such as `.lancedb` depends on the directory where the MCP client starts the server.
@@ -164,6 +110,57 @@ Add the local LanceDB directory to the target app's `.gitignore` unless you inte
 .lancedb
 ```
 
+## Local Development Usage
+
+If you are developing this repository locally and want another local project to use your working copy, install the packages from local file paths instead of npm registry versions.
+
+For the core SDK:
+
+```powershell
+cd E:\path\to\your-app
+pnpm add "@elephance/core@file:E:/github/elephance/packages/core" openai
+```
+
+Or add it manually to your app's `package.json`:
+
+```json
+{
+  "dependencies": {
+    "@elephance/core": "file:E:/github/elephance/packages/core",
+    "openai": "^4.0.0"
+  }
+}
+```
+
+Then install dependencies in your app:
+
+```bash
+pnpm install
+```
+
+If you install both the local MCP server and the local core SDK in another project, make sure the MCP server also resolves `@elephance/core` to the local package:
+
+```json
+{
+  "dependencies": {
+    "@elephance/core": "file:E:/github/elephance/packages/core",
+    "@elephance/mcp": "file:E:/github/elephance/packages/mcp"
+  },
+  "pnpm": {
+    "overrides": {
+      "@elephance/core": "file:E:/github/elephance/packages/core"
+    }
+  }
+}
+```
+
+Build this repository after changing source code:
+
+```powershell
+cd E:\github\elephance
+npm run build
+```
+
 ### Local MCP Server Setup
 
 If you are testing local MCP changes from this repository, you usually do not need to install `@elephance/mcp` into the target app. Point Cursor directly at the locally built server.
@@ -171,7 +168,7 @@ If you are testing local MCP changes from this repository, you usually do not ne
 First build this repository:
 
 ```powershell
-cd E:\github\lancedb-vector-store
+cd E:\github\elephance
 npm run build
 ```
 
@@ -183,7 +180,7 @@ Then add a server entry to Cursor's MCP config, usually at `C:\Users\<you>\.curs
     "elephance-local": {
       "command": "node",
       "args": [
-        "E:\\github\\lancedb-vector-store\\packages\\mcp\\dist\\server.js"
+        "E:\\github\\elephance\\packages\\mcp\\dist\\server.js"
       ],
       "env": {
         "ELEPHANCE_DB_PATH": "E:\\path\\to\\your-app\\.lancedb",

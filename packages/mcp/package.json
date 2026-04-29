@@ -1,6 +1,6 @@
 {
   "name": "@elephance/mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server for elephance local vector memory and schema retrieval",
   "license": "MIT",
   "type": "module",
@@ -37,9 +37,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.11.0",
     "@elephance/core": "^0.1.0",
+    "openai": ">=4.0.0",
     "zod": "^3.24.0"
-  },
-  "peerDependencies": {
-    "openai": ">=4.0.0"
   }
 }

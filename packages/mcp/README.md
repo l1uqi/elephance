@@ -16,15 +16,23 @@ Stdio MCP server for `elephance`, exposing local LanceDB-backed memory and schem
 ## Install
 
 ```bash
-npm install @elephance/mcp openai
+npm install @elephance/mcp
 ```
 
-`openai` is only required when you use the default embedding provider.
+`@elephance/mcp` installs the OpenAI SDK it needs at runtime. When using the default embedding provider, you only need to configure `OPENAI_API_KEY`.
 
-You can also run it directly with `npx`:
+You can also run the published package directly with `npx`:
 
 ```bash
-npx -y @elephance/mcp
+npx -y --package @elephance/mcp elephance-mcp
+```
+
+`npx` downloads `@elephance/mcp` and its dependencies from the currently configured npm registry. The explicit `--package @elephance/mcp` plus `elephance-mcp` command avoids relying on npm's bin inference for scoped packages.
+
+If your npm registry points to a mirror and you see a 404 for `@elephance/core`, use the official npm registry explicitly:
+
+```bash
+npx -y --registry=https://registry.npmjs.org --package @elephance/mcp elephance-mcp
 ```
 
 ## Cursor
@@ -36,7 +44,12 @@ Add this to your Cursor MCP configuration, usually at `C:\Users\<you>\.cursor\mc
   "mcpServers": {
     "elephance": {
       "command": "npx",
-      "args": ["-y", "@elephance/mcp"],
+      "args": [
+        "-y",
+        "--package",
+        "@elephance/mcp",
+        "elephance-mcp"
+      ],
       "env": {
         "ELEPHANCE_DB_PATH": "E:\\path\\to\\your-app\\.lancedb",
         "OPENAI_API_KEY": "your-api-key"
@@ -44,6 +57,12 @@ Add this to your Cursor MCP configuration, usually at `C:\Users\<you>\.cursor\mc
     }
   }
 }
+```
+
+If Cursor logs a 404 for `@elephance/core`, the current npm registry or mirror probably has not synced the dependency package. Change `args` to:
+
+```json
+"args": ["-y", "--registry=https://registry.npmjs.org", "--package", "@elephance/mcp", "elephance-mcp"]
 ```
 
 Use an absolute `ELEPHANCE_DB_PATH` for predictable storage. A relative path such as `.lancedb` depends on the working directory used by the MCP client.
@@ -72,7 +91,7 @@ npm run build
     "elephance-local": {
       "command": "node",
       "args": [
-        "E:\\github\\lancedb-vector-store\\packages\\mcp\\dist\\server.js"
+        "E:\\github\\elephance\\packages\\mcp\\dist\\server.js"
       ],
       "env": {
         "ELEPHANCE_DB_PATH": "E:\\path\\to\\your-app\\.lancedb",

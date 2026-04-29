@@ -16,15 +16,23 @@
 ## 安装
 
 ```bash
-npm install @elephance/mcp openai
+npm install @elephance/mcp
 ```
 
-只有使用默认 embedding provider 时才需要安装 `openai`。
+`@elephance/mcp` 会自动安装运行时所需的 OpenAI SDK；使用默认 embedding provider 时，只需要配置 `OPENAI_API_KEY`。
 
-也可以通过 `npx` 直接运行：
+也可以通过 `npx` 直接运行已发布的包：
 
 ```bash
-npx -y @elephance/mcp
+npx -y --package @elephance/mcp elephance-mcp
+```
+
+`npx` 会按当前 npm registry 临时下载 `@elephance/mcp` 及其依赖。显式使用 `--package @elephance/mcp` 并运行 `elephance-mcp`，可以避免依赖 npm 对 scoped package 的 bin 推断。
+
+如果你的 npm registry 指向镜像站，并遇到 `@elephance/core` 404，可以指定官方 npm registry：
+
+```bash
+npx -y --registry=https://registry.npmjs.org --package @elephance/mcp elephance-mcp
 ```
 
 ## Cursor
@@ -36,7 +44,12 @@ npx -y @elephance/mcp
   "mcpServers": {
     "elephance": {
       "command": "npx",
-      "args": ["-y", "@elephance/mcp"],
+      "args": [
+        "-y",
+        "--package",
+        "@elephance/mcp",
+        "elephance-mcp"
+      ],
       "env": {
         "ELEPHANCE_DB_PATH": "E:\\path\\to\\your-app\\.lancedb",
         "OPENAI_API_KEY": "your-api-key"
@@ -44,6 +57,12 @@ npx -y @elephance/mcp
     }
   }
 }
+```
+
+如果 Cursor 日志里出现类似 `@elephance/core` 404 的错误，通常是当前 npm registry 或镜像站没有同步依赖包。可以把 `args` 改成：
+
+```json
+"args": ["-y", "--registry=https://registry.npmjs.org", "--package", "@elephance/mcp", "elephance-mcp"]
 ```
 
 建议把 `ELEPHANCE_DB_PATH` 写成绝对路径，这样数据会稳定写入同一个目录。相对路径如 `.lancedb` 会取决于 MCP Client 启动 server 时的工作目录。
@@ -72,7 +91,7 @@ npm run build
     "elephance-local": {
       "command": "node",
       "args": [
-        "E:\\github\\lancedb-vector-store\\packages\\mcp\\dist\\server.js"
+        "E:\\github\\elephance\\packages\\mcp\\dist\\server.js"
       ],
       "env": {
         "ELEPHANCE_DB_PATH": "E:\\path\\to\\your-app\\.lancedb",

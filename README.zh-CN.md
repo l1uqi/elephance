@@ -41,91 +41,24 @@
 
 ## 安装
 
-核心 SDK：
+应用代码里调用核心 SDK：
 
 ```bash
 npm install @elephance/core openai
 ```
 
-MCP Server：
+在 Cursor 或其他 MCP Client 中使用 MCP Server：
 
 ```bash
-npm install @elephance/mcp openai
+npm install @elephance/mcp
 ```
 
-只有使用默认 OpenAI 兼容 embedding provider 时才需要安装 `openai`。
+`@elephance/mcp` 会自动安装运行时所需的 OpenAI SDK；使用默认 OpenAI 兼容 embedding provider 时，只需要配置 `OPENAI_API_KEY`。
 
 ## 已发布的 npm 包
 
-公开 npm 包：
-
 - [`@elephance/core`](https://www.npmjs.com/package/@elephance/core)
 - [`@elephance/mcp`](https://www.npmjs.com/package/@elephance/mcp)
-
-如果要在应用代码里调用 memory 和 schema API，安装核心 SDK：
-
-```bash
-npm install @elephance/core openai
-```
-
-如果要接入 Cursor 或其他 MCP Client，安装 MCP Server：
-
-```bash
-npm install -g @elephance/mcp openai
-```
-
-全局安装不是必须的。多数用户可以直接在 MCP 配置里使用 `npx -y @elephance/mcp`，MCP Client 会自动下载并运行 npm 上发布的包。
-
-## 本地开发使用
-
-如果你正在本地开发这个仓库，并且想让另一个本地项目使用你的工作副本，需要通过本地文件路径安装，而不是使用 npm registry 上的版本。
-
-安装核心 SDK：
-
-```powershell
-cd E:\path\to\your-app
-pnpm add "@elephance/core@file:E:/github/lancedb-vector-store/packages/core" openai
-```
-
-也可以手动写到目标项目的 `package.json`：
-
-```json
-{
-  "dependencies": {
-    "@elephance/core": "file:E:/github/lancedb-vector-store/packages/core",
-    "openai": "^4.0.0"
-  }
-}
-```
-
-然后在目标项目里安装依赖：
-
-```bash
-pnpm install
-```
-
-如果你在另一个项目里同时安装本地 MCP Server 和本地核心 SDK，需要确保 MCP Server 内部依赖的 `@elephance/core` 也解析到本地包：
-
-```json
-{
-  "dependencies": {
-    "@elephance/core": "file:E:/github/lancedb-vector-store/packages/core",
-    "@elephance/mcp": "file:E:/github/lancedb-vector-store/packages/mcp"
-  },
-  "pnpm": {
-    "overrides": {
-      "@elephance/core": "file:E:/github/lancedb-vector-store/packages/core"
-    }
-  }
-}
-```
-
-修改源码后，在本仓库重新构建：
-
-```powershell
-cd E:\github\lancedb-vector-store
-npm run build
-```
 
 ## Cursor MCP 配置
 
@@ -136,7 +69,12 @@ npm run build
   "mcpServers": {
     "elephance": {
       "command": "npx",
-      "args": ["-y", "@elephance/mcp"],
+      "args": [
+        "-y",
+        "--package",
+        "@elephance/mcp",
+        "elephance-mcp"
+      ],
       "env": {
         "ELEPHANCE_DB_PATH": "E:\\path\\to\\your-app\\.lancedb",
         "OPENAI_API_KEY": "your-api-key"
@@ -144,6 +82,14 @@ npm run build
     }
   }
 }
+```
+
+`npx` 会按当前 npm registry 临时下载 `@elephance/mcp` 及其依赖。显式使用 `--package @elephance/mcp` 并运行 `elephance-mcp`，可以避免依赖 npm 对 scoped package 的 bin 推断。
+
+如果你的 npm registry 使用镜像站，并且 Cursor 日志里出现类似 `@elephance/core` 404 的错误，可以把 `args` 改成显式使用官方 registry：
+
+```json
+"args": ["-y", "--registry=https://registry.npmjs.org", "--package", "@elephance/mcp", "elephance-mcp"]
 ```
 
 建议把 `ELEPHANCE_DB_PATH` 写成绝对路径，这样数据会稳定写入同一个目录。相对路径如 `.lancedb` 会取决于 MCP Client 启动 server 时的工作目录。
@@ -164,6 +110,57 @@ npm run build
 .lancedb
 ```
 
+## 本地开发使用
+
+如果你正在本地开发这个仓库，并且想让另一个本地项目使用你的工作副本，需要通过本地文件路径安装，而不是使用 npm registry 上的版本。
+
+安装核心 SDK：
+
+```powershell
+cd E:\path\to\your-app
+pnpm add "@elephance/core@file:E:/github/elephance/packages/core" openai
+```
+
+也可以手动写到目标项目的 `package.json`：
+
+```json
+{
+  "dependencies": {
+    "@elephance/core": "file:E:/github/elephance/packages/core",
+    "openai": "^4.0.0"
+  }
+}
+```
+
+然后在目标项目里安装依赖：
+
+```bash
+pnpm install
+```
+
+如果你在另一个项目里同时安装本地 MCP Server 和本地核心 SDK，需要确保 MCP Server 内部依赖的 `@elephance/core` 也解析到本地包：
+
+```json
+{
+  "dependencies": {
+    "@elephance/core": "file:E:/github/elephance/packages/core",
+    "@elephance/mcp": "file:E:/github/elephance/packages/mcp"
+  },
+  "pnpm": {
+    "overrides": {
+      "@elephance/core": "file:E:/github/elephance/packages/core"
+    }
+  }
+}
+```
+
+修改源码后，在本仓库重新构建：
+
+```powershell
+cd E:\github\elephance
+npm run build
+```
+
 ### 本地 MCP Server 配置
 
 如果你在本地测试这个仓库里的 MCP 改动，通常不需要把 `@elephance/mcp` 安装进目标项目。直接让 Cursor 指向本地构建后的 MCP Server 即可。
@@ -171,7 +168,7 @@ npm run build
 先构建本仓库：
 
 ```powershell
-cd E:\github\lancedb-vector-store
+cd E:\github\elephance
 npm run build
 ```
 
@@ -183,7 +180,7 @@ npm run build
     "elephance-local": {
       "command": "node",
       "args": [
-        "E:\\github\\lancedb-vector-store\\packages\\mcp\\dist\\server.js"
+        "E:\\github\\elephance\\packages\\mcp\\dist\\server.js"
       ],
       "env": {
         "ELEPHANCE_DB_PATH": "E:\\path\\to\\your-app\\.lancedb",
