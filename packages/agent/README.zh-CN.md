@@ -4,6 +4,12 @@ Elephance 的 Agent 自动记忆编排层。
 
 当你自己控制大模型调用流程，并希望在调用前自动检索 memory/schema、调用后提取可长期保存的记忆时，使用这个包。
 
+当前已发布版本：`0.2.0`。
+
+```bash
+npm install @elephance/agent @elephance/core openai
+```
+
 ```ts
 import { createElephanceAgent } from "@elephance/agent";
 

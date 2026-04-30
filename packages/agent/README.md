@@ -5,6 +5,12 @@ Agent memory orchestration for elephance.
 Use this package when you own the model loop and want durable memory to be
 retrieved before an LLM call and optionally extracted after the response.
 
+Current published version: `0.2.0`.
+
+```bash
+npm install @elephance/agent @elephance/core openai
+```
+
 ```ts
 import { createElephanceAgent } from "@elephance/agent";
 

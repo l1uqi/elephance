@@ -65,9 +65,13 @@ npm install @elephance/mcp
 
 ## Published Packages
 
-- [`@elephance/core`](https://www.npmjs.com/package/@elephance/core)
-- [`@elephance/agent`](https://www.npmjs.com/package/@elephance/agent)
-- [`@elephance/mcp`](https://www.npmjs.com/package/@elephance/mcp)
+Current published release: `0.2.0`.
+
+| Package | Version |
+| --- | --- |
+| [`@elephance/core`](https://www.npmjs.com/package/@elephance/core) | `0.2.0` |
+| [`@elephance/agent`](https://www.npmjs.com/package/@elephance/agent) | `0.2.0` |
+| [`@elephance/mcp`](https://www.npmjs.com/package/@elephance/mcp) | `0.2.0` |
 
 ## Cursor MCP Setup
 

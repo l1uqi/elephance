@@ -65,9 +65,13 @@ npm install @elephance/mcp
 
 ## 已发布的 npm 包
 
-- [`@elephance/core`](https://www.npmjs.com/package/@elephance/core)
-- [`@elephance/agent`](https://www.npmjs.com/package/@elephance/agent)
-- [`@elephance/mcp`](https://www.npmjs.com/package/@elephance/mcp)
+当前已发布版本：`0.2.0`。
+
+| 包 | 版本 |
+| --- | --- |
+| [`@elephance/core`](https://www.npmjs.com/package/@elephance/core) | `0.2.0` |
+| [`@elephance/agent`](https://www.npmjs.com/package/@elephance/agent) | `0.2.0` |
+| [`@elephance/mcp`](https://www.npmjs.com/package/@elephance/mcp) | `0.2.0` |
 
 ## Cursor MCP 配置
 

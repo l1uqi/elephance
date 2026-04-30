@@ -4,6 +4,8 @@
 
 Stdio MCP server for `elephance`, exposing local LanceDB-backed memory and schema retrieval tools to Cursor and other MCP-compatible clients.
 
+Current published version: `0.2.0`.
+
 ## What It Provides
 
 `@elephance/mcp` turns the core `@elephance/core` SDK into MCP tools:
