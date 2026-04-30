@@ -162,6 +162,15 @@ console.log(result.suggestions);
 
 建议类型包括 `consolidation`、`conflict_resolution`、`clarification` 和 `pruning`。当 `dryRun` 为 false 时，当前实现只自动应用安全的状态变更，例如 `deprecated`、`archived` 或 `conflicted`。
 
+## 研究思路来源
+
+Agent 层把论文里的思路落到实际运行循环里：
+
+- [AutoSkill](https://arxiv.org/abs/2603.01145)：启发从重复交互痕迹中提炼可复用 rule/skill artifact。
+- [MemSkill](https://arxiv.org/abs/2602.02474)：对应到 rule memory 的 extract、judge、merge、reflect、prune 生命周期。
+- [Memory for Autonomous LLM Agents](https://arxiv.org/abs/2603.07670)：对应 Elephance 的 write/manage/read 流程，也就是提取与提交、状态维护、检索和上下文注入。
+- [De Jure](https://arxiv.org/abs/2604.02276)：启发把自然语言规则提取成 `action`、`condition`、`constraint`、`confidence` 等结构化字段，并为后续 judge/repair 留接口。
+
 ## 设计边界
 
 `@elephance/agent` 不绑定任何模型厂商。OpenAI、Anthropic、Ollama、Vercel AI SDK、LangChain、Mastra 或自定义 runtime 都可以通过 `ChatAdapter` 接入。

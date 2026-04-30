@@ -184,6 +184,12 @@ await deleteProjectSchemaBySource("tables/billing_invoice.md");
 
 Rule 查询还支持 `label`、`scope`、`userId`、`projectId`、`repoPath`、`client`、`status`、`includeInactive` 和 `recordHit` 等过滤项。
 
+## 研究背景
+
+`@elephance/core` 刻意不依赖大模型。它只提供 rule memory 所需的本地存储、状态管理、检索和命中反馈；提取、判断和反思逻辑放在上层包里。
+
+这一层的设计参考了近期 Agent 记忆研究：[Memory for Autonomous LLM Agents](https://arxiv.org/abs/2603.07670) 提供 write/manage/read 闭环视角；[AutoSkill](https://arxiv.org/abs/2603.01145) 和 [MemSkill](https://arxiv.org/abs/2602.02474) 启发了可复用、可演化 artifact 的存储方式；[De Jure](https://arxiv.org/abs/2604.02276) 启发了可判断、可合并、可废弃和可归档的结构化规则字段。
+
 ## 自定义 Embedding Provider
 
 你可以用自己的 embedding 后端替换默认 OpenAI 兼容 provider。

@@ -107,6 +107,10 @@ npm run build
 
 Add `.lancedb` to your target app's `.gitignore` unless you intentionally want to commit local vector data.
 
+## Research Context
+
+The MCP server exposes the same rule-memory lifecycle inspired by [AutoSkill](https://arxiv.org/abs/2603.01145), [MemSkill](https://arxiv.org/abs/2602.02474), [Memory for Autonomous LLM Agents](https://arxiv.org/abs/2603.07670), and [De Jure](https://arxiv.org/abs/2604.02276), but keeps Cursor and other MCP clients on an explicit user-controlled workflow. Extraction and reflection tools can dry-run first; writes happen through commit/update tools instead of silent background mutation.
+
 ## Environment Variables
 
 | Variable | Description |

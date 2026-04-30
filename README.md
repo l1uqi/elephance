@@ -8,7 +8,7 @@
 
 Local vector memory for AI apps, agents, and MCP clients.
 
-`elephance` wraps LanceDB with a small TypeScript API for durable user memory, project schema retrieval, and evolvable rule memory. This repository is a workspace: the core SDK lives in `packages/core`, the agent orchestration package lives in `packages/agent`, and the MCP server lives in `packages/mcp`.
+`elephance` wraps LanceDB with a small TypeScript API for durable user memory, project schema retrieval, and evolvable rule memory. This repository is a workspace: the core SDK lives in `packages/core`, the agent orchestration package lives in `packages/agent`, the MCP server lives in `packages/mcp`, and the CLI lives in `packages/cli`.
 
 [![npm version](https://img.shields.io/npm/v/%40elephance%2Fcore)](https://www.npmjs.com/package/@elephance/core)
 [![MIT License](https://img.shields.io/npm/l/%40elephance%2Fcore)](LICENSE)
@@ -20,6 +20,7 @@ Local vector memory for AI apps, agents, and MCP clients.
 | `@elephance/core` | Core TypeScript SDK for LanceDB-backed memory, rules, and schema retrieval. | [packages/core](packages/core) |
 | `@elephance/agent` | Agent memory/rule orchestration for apps that own the model loop. | [packages/agent](packages/agent) |
 | `@elephance/mcp` | Stdio MCP server for Cursor and other MCP-compatible clients. | [packages/mcp](packages/mcp/README.md) |
+| `@elephance/cli` | Command-line tools for client templates and rule maintenance. | [packages/cli](packages/cli/README.md) |
 
 ## Use Cases
 
@@ -27,6 +28,7 @@ Local vector memory for AI apps, agents, and MCP clients.
 - Automatically retrieve memory before an LLM call and extract memory candidates after a response in your own agent runtime.
 - Persist project conventions, coding style, UI preferences, and agent behavior as structured rule memory.
 - Retrieve active rules before a task and record rule hits for future ranking and pruning.
+- Generate Cursor rules and Codex `AGENTS.md` templates from the command line.
 - Extend Cursor and other MCP clients with local, searchable memory across sessions.
 - Retrieve relevant project context when the active chat context is too small.
 - Store user preferences, notes, summaries, or facts.
@@ -63,6 +65,12 @@ Use the MCP server from Cursor or another MCP client:
 npm install @elephance/mcp
 ```
 
+Use the CLI for client templates and rule maintenance:
+
+```bash
+npm install @elephance/cli
+```
+
 `@elephance/mcp` installs the OpenAI SDK it needs at runtime. When using the default OpenAI-compatible embedding provider, you only need to configure `OPENAI_API_KEY`.
 
 ## Published Packages
@@ -74,6 +82,7 @@ Current published release: `0.3.0`.
 | [`@elephance/core`](https://www.npmjs.com/package/@elephance/core) | `0.3.0` |
 | [`@elephance/agent`](https://www.npmjs.com/package/@elephance/agent) | `0.3.0` |
 | [`@elephance/mcp`](https://www.npmjs.com/package/@elephance/mcp) | `0.3.0` |
+| [`@elephance/cli`](https://www.npmjs.com/package/@elephance/cli) | `0.3.0` |
 
 ## Cursor MCP Setup
 
@@ -179,7 +188,8 @@ If you install the local agent wrapper, MCP server, and core SDK in another proj
   "dependencies": {
     "@elephance/agent": "file:E:/github/elephance/packages/agent",
     "@elephance/core": "file:E:/github/elephance/packages/core",
-    "@elephance/mcp": "file:E:/github/elephance/packages/mcp"
+    "@elephance/mcp": "file:E:/github/elephance/packages/mcp",
+    "@elephance/cli": "file:E:/github/elephance/packages/cli"
   },
   "pnpm": {
     "overrides": {
@@ -314,6 +324,23 @@ For self-hosted agents, set `rules.extractor: "llm"` to use the same `ChatAdapte
 
 For Cursor, Claude Code, Claude Desktop, and other hosted AI clients, use `@elephance/mcp` plus client rules or hooks. `@elephance/agent` is for applications where you control the LLM call.
 
+Use `@elephance/cli` to generate client templates or maintain rules from a terminal:
+
+```bash
+npx -y --package @elephance/cli elephance init cursor --dir /path/to/repo
+npx -y --package @elephance/cli elephance init codex --dir /path/to/repo
+npx -y --package @elephance/cli elephance rule reflect --sample 50
+```
+
+## Research Influences
+
+The rule memory system is informed by recent agent-memory and skill-evolution work:
+
+- [AutoSkill: Experience-Driven Lifelong Learning via Skill Self-Evolution](https://arxiv.org/abs/2603.01145) inspired the idea of turning repeated user interactions into reusable, injectable artifacts.
+- [MemSkill: Learning and Evolving Memory Skills for Self-Evolving Agents](https://arxiv.org/abs/2602.02474) informed the extract, consolidate, prune, and reflect lifecycle.
+- [Memory for Autonomous LLM Agents: Mechanisms, Evaluation, and Emerging Frontiers](https://arxiv.org/abs/2603.07670) frames agent memory as a write, manage, read loop; Elephance maps that to extraction/commit, reflection/status management, and retrieval/context injection.
+- [De Jure: Iterative LLM Self-Refinement for Structured Extraction of Regulatory Rules](https://arxiv.org/abs/2604.02276) influenced the structured rule fields and the judge/repair direction for future LLM-based rule extraction.
+
 ## Documentation
 
 - Static API website: [docs](docs)
@@ -323,6 +350,7 @@ For Cursor, Claude Code, Claude Desktop, and other hosted AI clients, use `@elep
 - Rule memory and evolution design: [docs/rule-evolution-system.zh-CN.md](docs/rule-evolution-system.zh-CN.md)
 - MCP server usage: [packages/mcp/README.md](packages/mcp/README.md)
 - MCP server Chinese docs: [packages/mcp/README.zh-CN.md](packages/mcp/README.zh-CN.md)
+- CLI usage: [packages/cli/README.md](packages/cli/README.md)
 - Project rules template: [examples/rules.md](examples/rules.md)
 
 ## Development

@@ -20,6 +20,7 @@ const packages = [
   { workspace: "@elephance/core", path: "packages/core/package.json" },
   { workspace: "@elephance/agent", path: "packages/agent/package.json" },
   { workspace: "@elephance/mcp", path: "packages/mcp/package.json" },
+  { workspace: "@elephance/cli", path: "packages/cli/package.json" },
 ];
 
 function hasFlag(name, envName) {
@@ -77,9 +78,12 @@ function validateVersions() {
   const core = readJson("packages/core/package.json");
   const agent = readJson("packages/agent/package.json");
   const mcp = readJson("packages/mcp/package.json");
+  const cli = readJson("packages/cli/package.json");
   const declaredAgentCore = agent.dependencies?.["@elephance/core"];
   const declaredMcpAgent = mcp.dependencies?.["@elephance/agent"];
   const declaredCore = mcp.dependencies?.["@elephance/core"];
+  const declaredCliAgent = cli.dependencies?.["@elephance/agent"];
+  const declaredCliCore = cli.dependencies?.["@elephance/core"];
 
   if (!declaredAgentCore) {
     fail("packages/agent/package.json must depend on @elephance/core before publishing.");
@@ -91,6 +95,9 @@ function validateVersions() {
 
   if (!declaredMcpAgent) {
     fail("packages/mcp/package.json must depend on @elephance/agent before publishing.");
+  }
+  if (!declaredCliAgent || !declaredCliCore) {
+    fail("packages/cli/package.json must depend on @elephance/agent and @elephance/core before publishing.");
   }
 
   const accepted = new Set([core.version, `^${core.version}`, `~${core.version}`]);
@@ -110,6 +117,18 @@ function validateVersions() {
   if (!acceptedAgent.has(declaredMcpAgent)) {
     fail(
       `@elephance/mcp depends on @elephance/agent ${declaredMcpAgent}, but agent version is ${agent.version}. Update packages/mcp/package.json first.`
+    );
+  }
+
+  if (!accepted.has(declaredCliCore)) {
+    fail(
+      `@elephance/cli depends on @elephance/core ${declaredCliCore}, but core version is ${core.version}. Update packages/cli/package.json first.`
+    );
+  }
+
+  if (!acceptedAgent.has(declaredCliAgent)) {
+    fail(
+      `@elephance/cli depends on @elephance/agent ${declaredCliAgent}, but agent version is ${agent.version}. Update packages/cli/package.json first.`
     );
   }
 }

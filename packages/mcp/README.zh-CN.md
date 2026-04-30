@@ -107,6 +107,10 @@ npm run build
 
 除非你明确想提交本地向量数据，否则把目标项目里的 `.lancedb` 加入 `.gitignore`。
 
+## 研究背景
+
+MCP Server 暴露的是同一套受 [AutoSkill](https://arxiv.org/abs/2603.01145)、[MemSkill](https://arxiv.org/abs/2602.02474)、[Memory for Autonomous LLM Agents](https://arxiv.org/abs/2603.07670) 和 [De Jure](https://arxiv.org/abs/2604.02276) 启发的 rule-memory 生命周期，但 Cursor 等 MCP Client 保持显式、用户可控的工具流程。提取和反思可以先 dry-run，真正写入通过 commit/update tools 完成，不做静默后台改写。
+
 ## 环境变量
 
 | 变量 | 说明 |

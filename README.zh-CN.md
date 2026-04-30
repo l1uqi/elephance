@@ -8,7 +8,7 @@
 
 给 AI 应用、Agent 和 MCP Client 使用的本地向量记忆层。
 
-`elephance` 基于 LanceDB，提供一个轻量 TypeScript SDK，用来持久化用户记忆、项目 Schema 和可演化规则。这个仓库是 workspace：核心 SDK 在 `packages/core`，Agent 编排层在 `packages/agent`，MCP Server 在 `packages/mcp`。
+`elephance` 基于 LanceDB，提供一个轻量 TypeScript SDK，用来持久化用户记忆、项目 Schema 和可演化规则。这个仓库是 workspace：核心 SDK 在 `packages/core`，Agent 编排层在 `packages/agent`，MCP Server 在 `packages/mcp`，CLI 在 `packages/cli`。
 
 [![npm version](https://img.shields.io/npm/v/%40elephance%2Fcore)](https://www.npmjs.com/package/@elephance/core)
 [![MIT License](https://img.shields.io/npm/l/%40elephance%2Fcore)](LICENSE)
@@ -20,6 +20,7 @@
 | `@elephance/core` | 基于 LanceDB 的核心 TypeScript SDK，提供 memory、rule 和 schema 检索能力。 | [packages/core](packages/core) |
 | `@elephance/agent` | 面向自建 Agent 应用的自动记忆和规则编排层。 | [packages/agent](packages/agent) |
 | `@elephance/mcp` | stdio MCP Server，可接入 Cursor 和其他 MCP Client。 | [packages/mcp](packages/mcp/README.zh-CN.md) |
+| `@elephance/cli` | 用于客户端模板和规则维护的命令行工具。 | [packages/cli](packages/cli/README.zh-CN.md) |
 
 ## 适用场景
 
@@ -27,6 +28,7 @@
 - 在自建 Agent runtime 中，模型调用前自动检索记忆，回复后提取候选记忆。
 - 把项目约定、代码风格、UI 偏好和 Agent 行为规范沉淀为结构化规则。
 - 在任务开始前检索 active rules，并记录命中次数用于排序和后续修剪。
+- 从命令行生成 Cursor rules 和 Codex `AGENTS.md` 模板。
 - 为 Cursor 等 MCP Client 扩展可本地检索、可跨会话保留的记忆。
 - 在当前聊天上下文不够用时，检索相关的项目上下文。
 - 保存用户偏好、笔记、摘要或事实。
@@ -63,7 +65,22 @@ npm install @elephance/agent @elephance/core openai
 npm install @elephance/mcp
 ```
 
+使用 CLI 生成客户端模板和维护规则：
+
+```bash
+npm install @elephance/cli
+```
+
 `@elephance/mcp` 会自动安装运行时所需的 OpenAI SDK；使用默认 OpenAI 兼容 embedding provider 时，只需要配置 `OPENAI_API_KEY`。
+
+## 研究思路来源
+
+Elephance 的 rule memory 系统参考了近期关于 Agent 记忆和技能演化的研究：
+
+- [AutoSkill: Experience-Driven Lifelong Learning via Skill Self-Evolution](https://arxiv.org/abs/2603.01145)：启发了从交互痕迹中沉淀可复用 skill/rule artifact 的方向。
+- [MemSkill: Learning and Evolving Memory Skills for Self-Evolving Agents](https://arxiv.org/abs/2602.02474)：对应到候选提取、合并、反思、修剪这一套持续演化生命周期。
+- [Memory for Autonomous LLM Agents: Mechanisms, Evaluation, and Emerging Frontiers](https://arxiv.org/abs/2603.07670)：提供了 write、manage、read 记忆闭环的整体视角，Elephance 将其落到本地提取、状态治理、语义检索和上下文注入。
+- [De Jure: Iterative LLM Self-Refinement for Structured Extraction of Regulatory Rules](https://arxiv.org/abs/2604.02276)：启发了将自然语言纠正转成结构化规则字段，并在写入前进行 judge/repair 的设计。
 
 ## 已发布的 npm 包
 
@@ -74,6 +91,7 @@ npm install @elephance/mcp
 | [`@elephance/core`](https://www.npmjs.com/package/@elephance/core) | `0.3.0` |
 | [`@elephance/agent`](https://www.npmjs.com/package/@elephance/agent) | `0.3.0` |
 | [`@elephance/mcp`](https://www.npmjs.com/package/@elephance/mcp) | `0.3.0` |
+| [`@elephance/cli`](https://www.npmjs.com/package/@elephance/cli) | `0.3.0` |
 
 ## Cursor MCP 配置
 
@@ -179,7 +197,8 @@ pnpm install
   "dependencies": {
     "@elephance/agent": "file:E:/github/elephance/packages/agent",
     "@elephance/core": "file:E:/github/elephance/packages/core",
-    "@elephance/mcp": "file:E:/github/elephance/packages/mcp"
+    "@elephance/mcp": "file:E:/github/elephance/packages/mcp",
+    "@elephance/cli": "file:E:/github/elephance/packages/cli"
   },
   "pnpm": {
     "overrides": {
@@ -314,6 +333,14 @@ console.log(result.rules.candidates);
 
 Cursor、Claude Code、Claude Desktop 等现成 AI Client 仍然建议使用 `@elephance/mcp`，再配合客户端 rules 或 hooks。`@elephance/agent` 适合你自己掌控 LLM 调用流程的应用。
 
+可以用 `@elephance/cli` 从命令行生成客户端模板或维护规则：
+
+```bash
+npx -y --package @elephance/cli elephance init cursor --dir /path/to/repo
+npx -y --package @elephance/cli elephance init codex --dir /path/to/repo
+npx -y --package @elephance/cli elephance rule reflect --sample 50
+```
+
 ## 文档入口
 
 - 静态 API 网站：[docs](docs)
@@ -323,6 +350,7 @@ Cursor、Claude Code、Claude Desktop 等现成 AI Client 仍然建议使用 `@e
 - 自主规则回写与进化系统设计：[docs/rule-evolution-system.zh-CN.md](docs/rule-evolution-system.zh-CN.md)
 - MCP Server 英文文档：[packages/mcp/README.md](packages/mcp/README.md)
 - MCP Server 中文文档：[packages/mcp/README.zh-CN.md](packages/mcp/README.zh-CN.md)
+- CLI 文档：[packages/cli/README.zh-CN.md](packages/cli/README.zh-CN.md)
 - 项目规则模板：[examples/rules.md](examples/rules.md)
 
 ## 开发

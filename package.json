@@ -9,7 +9,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build -w @elephance/core && npm run build -w @elephance/agent && npm run build -w @elephance/mcp",
+    "build": "npm run build -w @elephance/core && npm run build -w @elephance/agent && npm run build -w @elephance/mcp && npm run build -w @elephance/cli",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
     "prepublishOnly": "npm run build",
     "publish:npm": "node scripts/publish-npm.mjs",

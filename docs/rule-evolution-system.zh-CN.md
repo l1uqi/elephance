@@ -14,10 +14,10 @@ Elephance 当前已经具备三层能力：
 
 本方案参考以下研究方向：
 
-- AutoSkill：从交互痕迹中提取可复用 skill/rule artifact。
-- MemSkill：通过 controller、executor、designer 让 memory skill 持续演化。
-- Memory for Autonomous LLM Agents：将 agent memory 视为 write、manage、read 闭环。
-- De Jure：将自然语言规则抽取为结构化 rule unit，并通过 judge/retry 进行自评修复。
+- [AutoSkill: Experience-Driven Lifelong Learning via Skill Self-Evolution](https://arxiv.org/abs/2603.01145)：从交互痕迹中提取可复用 skill/rule artifact，启发 Elephance 将普通聊天里的稳定纠正沉淀为规则。
+- [MemSkill: Learning and Evolving Memory Skills for Self-Evolving Agents](https://arxiv.org/abs/2602.02474)：通过 controller、executor、designer 让 memory skill 持续演化，对应 Elephance 的提取、合并、反思、修剪流程。
+- [Memory for Autonomous LLM Agents: Mechanisms, Evaluation, and Emerging Frontiers](https://arxiv.org/abs/2603.07670)：将 agent memory 视为 write、manage、read 闭环，对应 Elephance 的候选写入、状态治理、检索和上下文注入。
+- [De Jure: Iterative LLM Self-Refinement for Structured Extraction of Regulatory Rules](https://arxiv.org/abs/2604.02276)：将自然语言规则抽取为结构化 rule unit，并通过 judge/retry 进行自评修复，启发 Elephance 的结构化 rule metadata 和提交前判断。
 
 ## 设计目标
 
@@ -49,7 +49,6 @@ Elephance 当前已经具备三层能力：
 尚未实现或保持为后续增强：
 
 - 独立 `rule_events`、`rule_reflections` LanceDB 表。
-- `packages/cli` 以及 `elephance init cursor/codex`。
 - LLM judge/retry 版本的冲突判断和合并摘要。
 - 自动生成并写回更高质量 examples 的 reflection apply 阶段。
 - `rule_list_conflicts`、`rule_deprecate` 等更细粒度 MCP tools；当前可用 `rule_query` + `status` 和 `rule_update_status` 完成。
@@ -97,7 +96,7 @@ packages/mcp/src/server.ts
   暴露 rule tools。
 
 packages/cli
-  后续新增，负责 init cursor/codex、rule query、rule reflect 等命令。
+  已新增，负责 init cursor/codex、rule add/query/reflect/conflicts/deprecate 等命令。
 ```
 
 ## 数据模型
@@ -434,7 +433,7 @@ Codex 写入时建议 metadata 带上：
 
 ## CLI 接入
 
-建议新增 `packages/cli`，命令如下：
+已新增 `packages/cli`，bin 名称为 `elephance`。命令如下：
 
 ```bash
 elephance init cursor
@@ -445,6 +444,7 @@ elephance rule query "安装依赖应该用什么工具"
 elephance rule reflect --sample 50 --dry-run
 elephance rule conflicts
 elephance rule deprecate <id>
+elephance rule archive <id>
 ```
 
 CLI 是非 MCP 用户的主要入口，也适合做定期维护任务。
@@ -491,12 +491,12 @@ CLI 是非 MCP 用户的主要入口，也适合做定期维护任务。
 
 ### Phase 5：CLI 与客户端模板
 
-状态：未实现。
+状态：已完成基础版。
 
-- 新增 `packages/cli`。
-- 实现 `init cursor`、`init codex`。
-- 生成 Cursor rules 和 Codex `AGENTS.md` 模板。
-- 文档补充 Cursor/Codex/CLI 工作流。
+- 新增 `packages/cli`，发布包名 `@elephance/cli`，bin 名为 `elephance`。
+- 实现 `init cursor`、`init codex`，生成 Cursor rules 和 Codex `AGENTS.md` 模板。
+- 实现 `rule add`、`rule query`、`rule reflect`、`rule conflicts`、`rule deprecate`、`rule archive`。
+- CLI 使用 `ELEPHANCE_DB_PATH`、`ELEPHANCE_MEMORY_TABLE`、`ELEPHANCE_SCHEMA_TABLE`、`ELEPHANCE_RULE_TABLE` 环境变量，与 MCP Server 保持一致。
 
 ## 默认策略建议
 

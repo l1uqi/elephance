@@ -5,5 +5,5 @@
     "noEmit": true,
     "rootDir": "."
   },
-  "include": ["packages/core/src/**/*", "packages/agent/src/**/*", "__tests__/**/*"]
+  "include": ["packages/core/src/**/*", "packages/agent/src/**/*", "packages/cli/src/**/*", "__tests__/**/*"]
 }

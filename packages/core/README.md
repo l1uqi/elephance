@@ -187,6 +187,12 @@ await deleteProjectSchemaBySource("tables/billing_invoice.md");
 
 Rule search also accepts rule filters such as `label`, `scope`, `userId`, `projectId`, `repoPath`, `client`, `status`, `includeInactive`, and `recordHit`.
 
+## Research Context
+
+`@elephance/core` intentionally stays model-free. It implements the local storage, status, retrieval, and hit-feedback layer needed by rule memory, while extraction and judgment live in higher packages.
+
+The shape follows recent agent-memory work: [Memory for Autonomous LLM Agents](https://arxiv.org/abs/2603.07670) frames memory as write/manage/read; [AutoSkill](https://arxiv.org/abs/2603.01145) and [MemSkill](https://arxiv.org/abs/2602.02474) motivate reusable, evolving artifacts; and [De Jure](https://arxiv.org/abs/2604.02276) informs structured rule fields that can be judged, merged, deprecated, or archived.
+
 ## Custom Embedding Provider
 
 You can replace the default OpenAI-compatible provider with your own embedding backend.

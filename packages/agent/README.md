@@ -179,6 +179,15 @@ Suggestion kinds include `consolidation`, `conflict_resolution`,
 `clarification`, and `pruning`. When `dryRun` is false, the implementation only
 applies safe status changes such as `deprecated`, `archived`, or `conflicted`.
 
+## Research Influences
+
+The agent layer maps research ideas into the runtime loop:
+
+- [AutoSkill](https://arxiv.org/abs/2603.01145) motivates turning repeated interaction traces into reusable rule or skill artifacts.
+- [MemSkill](https://arxiv.org/abs/2602.02474) informs the extract, judge, merge, reflect, and prune lifecycle for rule memory.
+- [Memory for Autonomous LLM Agents](https://arxiv.org/abs/2603.07670) maps directly to Elephance's write/manage/read flow: extraction and commit, status maintenance, retrieval, and context injection.
+- [De Jure](https://arxiv.org/abs/2604.02276) informs structured rule extraction with fields such as action, condition, constraint, confidence, and later judge/repair hooks.
+
 ## Design
 
 `@elephance/agent` does not depend on a specific model provider. Pass a
