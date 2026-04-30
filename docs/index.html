@@ -202,6 +202,10 @@ const result = await agent.chat([
             <p data-i18n="agent.extract">Extract durable memory candidates without writing by default.</p>
           </article>
           <article class="api-item">
+            <h3>createLlmMemoryExtractor(options)</h3>
+            <p data-i18n="agent.llmExtract">Use your chat adapter to extract richer project conventions and UI preferences.</p>
+          </article>
+          <article class="api-item">
             <h3>commitMemoryCandidates(candidates)</h3>
             <p data-i18n="agent.commit">Write accepted candidates through the configured policy.</p>
           </article>
@@ -221,6 +225,9 @@ const result = await agent.chat([
           <div class="table-row"><code>memory_upsert</code><span data-i18n="mcp.memoryUpsert">Store a short user memory.</span></div>
           <div class="table-row"><code>memory_query</code><span data-i18n="mcp.memoryQuery">Search stored memories.</span></div>
           <div class="table-row"><code>memory_clear_user</code><span data-i18n="mcp.memoryClear">Delete one user's memories.</span></div>
+          <div class="table-row"><code>context_query</code><span data-i18n="mcp.contextQuery">Build compact task context from memory and schema.</span></div>
+          <div class="table-row"><code>memory_extract_candidates</code><span data-i18n="mcp.memoryExtract">Dry-run extraction of durable memory candidates.</span></div>
+          <div class="table-row"><code>memory_commit_candidates</code><span data-i18n="mcp.memoryCommit">Write accepted memory candidates after policy filtering.</span></div>
           <div class="table-row"><code>schema_replace_source</code><span data-i18n="mcp.schemaReplace">Replace schema chunks for a source.</span></div>
           <div class="table-row"><code>schema_delete_source</code><span data-i18n="mcp.schemaDelete">Delete schema chunks for a source.</span></div>
           <div class="table-row"><code>schema_query</code><span data-i18n="mcp.schemaQuery">Search schema semantically.</span></div>
@@ -322,6 +329,7 @@ node E:\github\lancedb-vector-store\packages\mcp\dist\server.js</code></pre>
           "agent.create": "Create an agent wrapper around your own chat adapter.",
           "agent.context": "Retrieve and format relevant memory/schema context.",
           "agent.extract": "Extract durable memory candidates without writing by default.",
+          "agent.llmExtract": "Use your chat adapter to extract richer project conventions and UI preferences.",
           "agent.commit": "Write accepted candidates through the configured policy.",
           "mcp.eyebrow": "MCP Server",
           "mcp.title": "Cursor tools",
@@ -330,6 +338,9 @@ node E:\github\lancedb-vector-store\packages\mcp\dist\server.js</code></pre>
           "mcp.memoryUpsert": "Store a short user memory.",
           "mcp.memoryQuery": "Search stored memories.",
           "mcp.memoryClear": "Delete one user's memories.",
+          "mcp.contextQuery": "Build compact task context from memory and schema.",
+          "mcp.memoryExtract": "Dry-run extraction of durable memory candidates.",
+          "mcp.memoryCommit": "Write accepted memory candidates after policy filtering.",
           "mcp.schemaReplace": "Replace schema chunks for a source.",
           "mcp.schemaDelete": "Delete schema chunks for a source.",
           "mcp.schemaQuery": "Search schema semantically.",
@@ -381,6 +392,7 @@ node E:\github\lancedb-vector-store\packages\mcp\dist\server.js</code></pre>
           "agent.create": "围绕你自己的 chat adapter 创建 agent wrapper。",
           "agent.context": "检索并格式化相关 memory/schema 上下文。",
           "agent.extract": "提取可长期保存的候选记忆，默认不写入。",
+          "agent.llmExtract": "使用你的 chat adapter 提取更丰富的项目约定和 UI 偏好。",
           "agent.commit": "按配置策略写入已接受的候选记忆。",
           "mcp.eyebrow": "MCP Server",
           "mcp.title": "Cursor Tools",
@@ -389,6 +401,9 @@ node E:\github\lancedb-vector-store\packages\mcp\dist\server.js</code></pre>
           "mcp.memoryUpsert": "写入一条短用户记忆。",
           "mcp.memoryQuery": "检索已存记忆。",
           "mcp.memoryClear": "删除某个用户的记忆。",
+          "mcp.contextQuery": "从 memory 和 schema 构造紧凑任务上下文。",
+          "mcp.memoryExtract": "dry-run 提取可长期保存的候选记忆。",
+          "mcp.memoryCommit": "经过策略过滤后写入已接受的候选记忆。",
           "mcp.schemaReplace": "替换某个来源的 schema 分块。",
           "mcp.schemaDelete": "删除某个来源的 schema 分块。",
           "mcp.schemaQuery": "按语义检索 schema。",

@@ -111,7 +111,7 @@ npm install @elephance/mcp
 }
 ```
 
-更新 MCP 配置后重启 Cursor。Server 会提供 `memory_upsert`、`memory_query`、`schema_replace_source`、`schema_query` 等 tools。
+更新 MCP 配置后重启 Cursor。Server 会提供 `memory_upsert`、`memory_query`、`context_query`、`memory_extract_candidates`、`memory_commit_candidates`、`schema_replace_source`、`schema_query` 等 tools。
 
 除非你明确想提交本地向量数据，否则建议把目标项目里的 LanceDB 目录加入 `.gitignore`：
 

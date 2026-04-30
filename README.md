@@ -111,7 +111,7 @@ If you use an OpenAI-compatible relay, add it inside `env`:
 }
 ```
 
-Restart Cursor after updating the MCP config. The server exposes tools such as `memory_upsert`, `memory_query`, `schema_replace_source`, and `schema_query`.
+Restart Cursor after updating the MCP config. The server exposes tools such as `memory_upsert`, `memory_query`, `context_query`, `memory_extract_candidates`, `memory_commit_candidates`, `schema_replace_source`, and `schema_query`.
 
 Add the local LanceDB directory to the target app's `.gitignore` unless you intentionally want to commit local vector data:
 

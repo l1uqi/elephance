@@ -124,6 +124,9 @@ npm run build
 | `memory_upsert` | 写入一条短的非敏感用户记忆。 |
 | `memory_query` | 按语义相似度查询已存记忆。 |
 | `memory_clear_user` | 删除某个用户的全部记忆。 |
+| `context_query` | 为当前任务构造紧凑的 memory/schema 上下文。 |
+| `memory_extract_candidates` | 从消息中 dry-run 提取可长期保存的候选记忆。 |
+| `memory_commit_candidates` | 经过策略过滤后写入已接受的候选记忆。 |
 | `schema_replace_source` | 替换某个 source path 下的全部 schema 分块。 |
 | `schema_delete_source` | 删除某个 source path 下的全部 schema 分块。 |
 | `schema_query` | 按语义相似度查询项目 schema。 |
@@ -160,6 +163,54 @@ npm run build
 
 ```json
 {
+  "userId": "user-123"
+}
+```
+
+### `context_query`
+
+```json
+{
+  "query": "开发一个用户列表组件",
+  "includeMemory": true,
+  "includeSchema": false,
+  "topK": 5,
+  "maxTextChars": 420
+}
+```
+
+Cursor rules 可以在实现任务前调用它，用来检索用户偏好、UI 约定、代码风格或项目事实。
+
+### `memory_extract_candidates`
+
+```json
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "列表 hover 不要整行改背景，用轻量左边线就好。"
+    }
+  ],
+  "userId": "user-123",
+  "allowedLabels": ["ui_preference", "project_convention"],
+  "minConfidence": 0.72
+}
+```
+
+这是 dry-run 工具。Cursor 可以先查看返回的候选，再调用 `memory_commit_candidates`。
+
+### `memory_commit_candidates`
+
+```json
+{
+  "candidates": [
+    {
+      "text": "列表 hover 状态应该使用轻量左边线，而不是强烈的整行背景变化。",
+      "label": "ui_preference",
+      "confidence": 0.86,
+      "source": "conversation_summary"
+    }
+  ],
   "userId": "user-123"
 }
 ```
@@ -225,7 +276,7 @@ npm run build
 - 不要把密钥、访问 token、密码、私钥或敏感个人数据写入 memory。
 - 每条 memory 应该短、明确、可独立理解。
 - 长期稳定偏好使用 `user_preference`，这样可以覆盖旧值。
-- 需要累积的上下文可以使用 `note`、`summary` 或 `fact`。
+- 需要累积的可复用上下文可以使用 `project_convention`、`ui_preference`、`coding_style`、`architecture_decision`、`note`、`summary` 或 `fact`。
 - 除非你明确想提交本地向量数据，否则把 `.lancedb` 加入 `.gitignore`。
 
 ## 开发

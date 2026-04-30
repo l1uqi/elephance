@@ -78,6 +78,7 @@ function validateVersions() {
   const agent = readJson("packages/agent/package.json");
   const mcp = readJson("packages/mcp/package.json");
   const declaredAgentCore = agent.dependencies?.["@elephance/core"];
+  const declaredMcpAgent = mcp.dependencies?.["@elephance/agent"];
   const declaredCore = mcp.dependencies?.["@elephance/core"];
 
   if (!declaredAgentCore) {
@@ -88,7 +89,12 @@ function validateVersions() {
     fail("packages/mcp/package.json must depend on @elephance/core before publishing.");
   }
 
+  if (!declaredMcpAgent) {
+    fail("packages/mcp/package.json must depend on @elephance/agent before publishing.");
+  }
+
   const accepted = new Set([core.version, `^${core.version}`, `~${core.version}`]);
+  const acceptedAgent = new Set([agent.version, `^${agent.version}`, `~${agent.version}`]);
   if (!accepted.has(declaredAgentCore)) {
     fail(
       `@elephance/agent depends on @elephance/core ${declaredAgentCore}, but core version is ${core.version}. Update packages/agent/package.json first.`
@@ -98,6 +104,12 @@ function validateVersions() {
   if (!accepted.has(declaredCore)) {
     fail(
       `@elephance/mcp depends on @elephance/core ${declaredCore}, but core version is ${core.version}. Update packages/mcp/package.json first.`
+    );
+  }
+
+  if (!acceptedAgent.has(declaredMcpAgent)) {
+    fail(
+      `@elephance/mcp depends on @elephance/agent ${declaredMcpAgent}, but agent version is ${agent.version}. Update packages/mcp/package.json first.`
     );
   }
 }

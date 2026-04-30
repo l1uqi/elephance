@@ -124,6 +124,9 @@ Add `.lancedb` to your target app's `.gitignore` unless you intentionally want t
 | `memory_upsert` | Store a short, non-sensitive user memory. |
 | `memory_query` | Search stored memories by semantic similarity. |
 | `memory_clear_user` | Delete all stored memories for a user. |
+| `context_query` | Build compact memory/schema context for the current task. |
+| `memory_extract_candidates` | Dry-run extraction of durable memory candidates from messages. |
+| `memory_commit_candidates` | Write accepted memory candidates after policy filtering. |
 | `schema_replace_source` | Replace all schema chunks for one source path. |
 | `schema_delete_source` | Delete all schema chunks for one source path. |
 | `schema_query` | Search project schema by semantic similarity. |
@@ -160,6 +163,54 @@ Add `.lancedb` to your target app's `.gitignore` unless you intentionally want t
 
 ```json
 {
+  "userId": "user-123"
+}
+```
+
+### `context_query`
+
+```json
+{
+  "query": "Build a user list component",
+  "includeMemory": true,
+  "includeSchema": false,
+  "topK": 5,
+  "maxTextChars": 420
+}
+```
+
+Use this from Cursor rules before implementation work that may depend on user preferences, UI conventions, coding style, or project facts.
+
+### `memory_extract_candidates`
+
+```json
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "List hover should not change the full background. Use a subtle left border."
+    }
+  ],
+  "userId": "user-123",
+  "allowedLabels": ["ui_preference", "project_convention"],
+  "minConfidence": 0.72
+}
+```
+
+This tool is a dry-run helper. Cursor can inspect the returned candidates before calling `memory_commit_candidates`.
+
+### `memory_commit_candidates`
+
+```json
+{
+  "candidates": [
+    {
+      "text": "List hover states should use a subtle left border instead of a strong full-row background.",
+      "label": "ui_preference",
+      "confidence": 0.86,
+      "source": "conversation_summary"
+    }
+  ],
   "userId": "user-123"
 }
 ```
@@ -225,7 +276,7 @@ Search tools accept these optional fields:
 - Do not store secrets, access tokens, passwords, private keys, or sensitive personal data in memory.
 - Keep memory entries short and independently understandable.
 - Use `user_preference` for stable preferences that should overwrite older values.
-- Use `note`, `summary`, or `fact` for accumulating context.
+- Use `project_convention`, `ui_preference`, `coding_style`, `architecture_decision`, `note`, `summary`, or `fact` for accumulating reusable context.
 - Add `.lancedb` to `.gitignore` unless you intentionally want to commit local vector data.
 
 ## Development

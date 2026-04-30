@@ -8,6 +8,10 @@ import type {
 
 export const DEFAULT_ALLOWED_LABELS = [
   "user_preference",
+  "project_convention",
+  "ui_preference",
+  "coding_style",
+  "architecture_decision",
   "fact",
   "summary",
   "note",
@@ -26,6 +30,7 @@ export function resolveMemoryPolicy(
 ): RequiredMemoryPolicy {
   return {
     autoRetrieve: policy.autoRetrieve ?? true,
+    autoExtract: policy.autoExtract ?? policy.autoWrite !== false,
     autoWrite: policy.autoWrite ?? false,
     topK: policy.topK ?? 5,
     minimal: policy.minimal ?? true,

@@ -32,6 +32,56 @@ console.log(result.message.content);
 console.log(result.memory.candidates);
 ```
 
+## LLM extraction
+
+The default extractor is conservative and rule-based. For richer project
+learning, pass an LLM-backed extractor. It still uses your `ChatAdapter`, so the
+package remains provider-neutral.
+
+```ts
+import {
+  createElephanceAgent,
+  createLlmMemoryExtractor,
+} from "@elephance/agent";
+
+const llm = {
+  async chat(messages) {
+    return {
+      role: "assistant",
+      content: "Return your provider response here.",
+    };
+  },
+};
+
+const agent = createElephanceAgent({
+  userId: "user-123",
+  llm,
+  extractor: createLlmMemoryExtractor({
+    llm,
+    mode: "project_learning",
+  }),
+  memory: {
+    autoRetrieve: true,
+    autoExtract: true,
+    autoWrite: "dry-run",
+    allowedLabels: [
+      "user_preference",
+      "project_convention",
+      "ui_preference",
+      "coding_style",
+      "architecture_decision",
+      "fact",
+      "summary",
+      "note",
+    ],
+  },
+});
+```
+
+This is useful for iterative workflows such as UI refinement. If a user guides
+the assistant toward the final list style, the extractor can store the reusable
+project convention instead of every intermediate attempt.
+
 ## Design
 
 `@elephance/agent` does not depend on a specific model provider. Pass a
@@ -64,3 +114,7 @@ Supported write modes:
 
 The default policy rejects low-confidence candidates, unsupported labels, long
 memory text, and obvious secrets.
+
+Default labels include `user_preference`, `project_convention`,
+`ui_preference`, `coding_style`, `architecture_decision`, `fact`, `summary`,
+and `note`.

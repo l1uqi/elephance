@@ -4,6 +4,15 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import {
+  commitMemoryCandidates,
+  createMemoryContext,
+  extractMemoryCandidates,
+  resolveMemoryPolicy,
+  shouldCommitCandidate,
+  type AgentMessage,
+  type MemoryCandidate,
+} from "@elephance/agent";
+import {
   batchQueryProjectSchema,
   clearUserMemory,
   configure,
@@ -34,6 +43,31 @@ const queryOptionsSchema = {
   maxTextChars: z.number().int().positive().optional(),
   candidateLimit: z.number().int().positive().optional(),
   maxChunksPerSource: z.number().int().positive().optional(),
+};
+
+const agentMessageSchema = z.object({
+  role: z.enum(["system", "user", "assistant", "tool"]),
+  content: z.string().min(1),
+  name: z.string().optional(),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+const memoryCandidateSchema = z.object({
+  text: z.string().min(1),
+  label: z.string().min(1),
+  userId: z.string().min(1).optional(),
+  confidence: z.number().min(0).max(1),
+  reason: z.string().optional(),
+  source: z.string().optional(),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+const memoryPolicySchema = {
+  userId: z.string().min(1).optional(),
+  minConfidence: z.number().min(0).max(1).optional(),
+  maxCandidatesPerTurn: z.number().int().positive().optional(),
+  allowedLabels: z.array(z.string().min(1)).optional(),
+  deniedLabels: z.array(z.string().min(1)).optional(),
 };
 
 function asTextJson(value: unknown) {
@@ -103,6 +137,118 @@ server.tool(
   async ({ userId }) => {
     await clearUserMemory(userId);
     return asTextJson({ ok: true });
+  }
+);
+
+server.tool(
+  "context_query",
+  "Build compact Elephance context for the current task by querying memory and optionally project schema.",
+  {
+    query: z.string().min(1).optional(),
+    messages: z.array(agentMessageSchema).optional(),
+    userId: z.string().min(1).optional(),
+    includeMemory: z.boolean().default(true),
+    includeSchema: z.boolean().default(false),
+    topK: z.number().int().positive().optional(),
+    maxTextChars: z.number().int().positive().optional(),
+  },
+  async ({
+    query,
+    messages,
+    userId,
+    includeMemory,
+    includeSchema,
+    topK,
+    maxTextChars,
+  }) => {
+    const context = await createMemoryContext({
+      query,
+      messages: messages as AgentMessage[] | undefined,
+      userId,
+      memory: {
+        autoRetrieve: includeMemory,
+        topK,
+        maxTextChars,
+      },
+      schema: {
+        autoRetrieve: includeSchema,
+        topK,
+        maxTextChars,
+      },
+    });
+    return asTextJson(context);
+  }
+);
+
+server.tool(
+  "memory_extract_candidates",
+  "Extract durable, non-sensitive memory candidates from conversation messages. This is a dry-run helper for automatic memory workflows.",
+  {
+    messages: z.array(agentMessageSchema).min(1),
+    response: agentMessageSchema.optional(),
+    ...memoryPolicySchema,
+  },
+  async ({ messages, response, userId, ...policyArgs }) => {
+    const policy = resolveMemoryPolicy(
+      {
+        ...policyArgs,
+        autoWrite: "dry-run",
+        autoExtract: true,
+      },
+      userId
+    );
+    const candidates = await extractMemoryCandidates({
+      messages: messages as AgentMessage[],
+      response: response as AgentMessage | undefined,
+      userId,
+      policy,
+    });
+    const decisions = candidates.map((candidate) => {
+      const decision = shouldCommitCandidate(candidate, policy);
+      return {
+        candidate,
+        ok: decision.ok,
+        reason: decision.ok ? undefined : decision.reason,
+      };
+    });
+    return asTextJson({ candidates, decisions });
+  }
+);
+
+server.tool(
+  "memory_commit_candidates",
+  "Write accepted memory candidates after policy filtering. Use only for durable, non-sensitive memories.",
+  {
+    candidates: z.array(memoryCandidateSchema).min(1),
+    dryRun: z.boolean().default(false),
+    ...memoryPolicySchema,
+  },
+  async ({ candidates, dryRun, userId, ...policyArgs }) => {
+    const policy = resolveMemoryPolicy(
+      {
+        ...policyArgs,
+        autoWrite: dryRun ? "dry-run" : "always",
+      },
+      userId
+    );
+    const typedCandidates = candidates as MemoryCandidate[];
+    if (dryRun) {
+      const decisions = typedCandidates.map((candidate) => {
+        const decision = shouldCommitCandidate(candidate, policy);
+        return {
+          candidate,
+          ok: decision.ok,
+          reason: decision.ok ? undefined : decision.reason,
+        };
+      });
+      return asTextJson({ dryRun: true, decisions });
+    }
+
+    const result = await commitMemoryCandidates(typedCandidates, {
+      userId,
+      policy,
+    });
+    return asTextJson(result);
   }
 );
 

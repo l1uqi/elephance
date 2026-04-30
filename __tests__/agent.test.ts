@@ -1,9 +1,11 @@
 import { describe, expect, it } from "@jest/globals";
 import {
+  createLlmMemoryExtractor,
   createElephanceAgent,
   extractMemoryCandidates,
   formatElephanceContext,
   looksSensitive,
+  parseMemoryCandidatesFromText,
   resolveMemoryPolicy,
   shouldCommitCandidate,
   type AgentMessage,
@@ -105,5 +107,69 @@ describe("@elephance/agent", () => {
     expect(result.memory.candidates).toHaveLength(1);
     expect(result.memory.writes).toHaveLength(0);
     expect(seenMessages[0]?.[0]?.role).toBe("user");
+  });
+
+  it("parses LLM memory extraction JSON", () => {
+    const candidates = parseMemoryCandidatesFromText(
+      JSON.stringify({
+        candidates: [
+          {
+            text: "In this project, list hover states should use a subtle left border instead of a strong background.",
+            label: "ui_preference",
+            confidence: 0.91,
+            reason: "The user corrected the list hover style repeatedly.",
+            source: "conversation_summary",
+          },
+        ],
+      })
+    );
+
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0]?.label).toBe("ui_preference");
+  });
+
+  it("uses an LLM extractor adapter and filters candidates through policy", async () => {
+    const policy = resolveMemoryPolicy(
+      { autoWrite: "dry-run", allowedLabels: ["ui_preference"] },
+      "u1"
+    );
+    const extractor = createLlmMemoryExtractor({
+      llm: {
+        async chat(messages) {
+          expect(messages[0]?.role).toBe("system");
+          return {
+            role: "assistant",
+            content: JSON.stringify({
+              candidates: [
+                {
+                  text: "List item hover states should use a subtle left border rather than a strong background.",
+                  label: "ui_preference",
+                  confidence: 0.9,
+                  reason: "The user converged on this visual preference.",
+                  source: "conversation_summary",
+                },
+                {
+                  text: "Temporary task detail.",
+                  label: "temporary",
+                  confidence: 0.99,
+                },
+              ],
+            }),
+          };
+        },
+      },
+    });
+
+    const candidates = await extractor.extract({
+      messages: [
+        { role: "user", content: "列表 hover 不要改背景，左边线就好。" },
+      ],
+      userId: "u1",
+      policy,
+    });
+
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0]?.userId).toBe("u1");
+    expect(candidates[0]?.label).toBe("ui_preference");
   });
 });

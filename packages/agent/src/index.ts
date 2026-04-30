@@ -4,8 +4,10 @@ export {
   formatElephanceContext,
 } from "./context.js";
 export {
+  createLlmMemoryExtractor,
   commitMemoryCandidates,
   extractMemoryCandidates,
+  parseMemoryCandidatesFromText,
 } from "./extraction.js";
 export {
   looksSensitive,
@@ -32,6 +34,8 @@ export type {
   MemoryContextResult,
   MemoryExtractionInput,
   MemoryExtractor,
+  MemoryLabel,
   MemoryPolicy,
+  LlmMemoryExtractorOptions,
   SchemaPolicy,
 } from "./types.js";

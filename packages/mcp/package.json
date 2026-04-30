@@ -35,6 +35,7 @@
     "semantic-search"
   ],
   "dependencies": {
+    "@elephance/agent": "^0.1.0",
     "@modelcontextprotocol/sdk": "^1.11.0",
     "@elephance/core": "^0.1.0",
     "openai": ">=4.0.0",

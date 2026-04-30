@@ -25,8 +25,20 @@ export interface ChatAdapter {
 
 export type AutoWriteMode = false | "dry-run" | "confirm" | "always";
 
+export type MemoryLabel =
+  | "user_preference"
+  | "project_convention"
+  | "ui_preference"
+  | "coding_style"
+  | "architecture_decision"
+  | "fact"
+  | "summary"
+  | "note"
+  | string;
+
 export interface MemoryPolicy {
   autoRetrieve?: boolean;
+  autoExtract?: boolean;
   autoWrite?: AutoWriteMode;
   topK?: number;
   minimal?: boolean;
@@ -69,7 +81,7 @@ export interface ElephanceAgentChatOptions {
 
 export interface MemoryCandidate {
   text: string;
-  label: "user_preference" | "fact" | "summary" | "note" | string;
+  label: MemoryLabel;
   userId?: string;
   confidence: number;
   reason?: string;
@@ -79,6 +91,13 @@ export interface MemoryCandidate {
 
 export interface MemoryExtractor {
   extract(input: MemoryExtractionInput): Promise<MemoryCandidate[]>;
+}
+
+export interface LlmMemoryExtractorOptions {
+  llm: ChatAdapter;
+  chatOptions?: ChatAdapterOptions;
+  systemPrompt?: string;
+  mode?: "user_memory" | "project_learning" | "mixed";
 }
 
 export interface MemoryExtractionInput {
@@ -129,6 +148,7 @@ export interface ElephanceAgentResult {
 
 export interface RequiredMemoryPolicy {
   autoRetrieve: boolean;
+  autoExtract: boolean;
   autoWrite: AutoWriteMode;
   topK: number;
   minimal: boolean;

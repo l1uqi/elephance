@@ -53,12 +53,14 @@ export function createElephanceAgent(
       });
 
       const extractor = options.extractor ?? { extract: extractMemoryCandidates };
-      const candidates = await extractor.extract({
-        messages,
-        response: message,
-        userId: memoryPolicy.userId,
-        policy: memoryPolicy,
-      });
+      const candidates = memoryPolicy.autoExtract
+        ? await extractor.extract({
+            messages,
+            response: message,
+            userId: memoryPolicy.userId,
+            policy: memoryPolicy,
+          })
+        : [];
 
       let writes: MemoryCommit[] = [];
       if (memoryPolicy.autoWrite === "always") {
@@ -75,8 +77,7 @@ export function createElephanceAgent(
         messages: [...messages, message],
         context,
         memory: {
-          candidates:
-            memoryPolicy.autoWrite === false ? ([] as MemoryCandidate[]) : candidates,
+          candidates,
           writes,
         },
       };
