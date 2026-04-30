@@ -1,11 +1,14 @@
 import {
   queryMemory,
   queryProjectSchema,
+  queryRules,
   type MemoryHit,
+  type RuleHit,
   type SchemaHit,
 } from "@elephance/core";
 import {
   resolveMemoryPolicy,
+  resolveRulePolicy,
   resolveSchemaPolicy,
 } from "./policy.js";
 import type {
@@ -46,15 +49,46 @@ function formatSchemaHit(hit: SchemaHit): string {
   return `- source: ${hit.source}\n  content: ${hit.text}`;
 }
 
+function compactText(text: string, minimal: boolean, maxChars: number): string {
+  const trimmed = text.trim();
+  if (!minimal || trimmed.length <= maxChars) {
+    return trimmed;
+  }
+  return trimmed.slice(0, maxChars).trimEnd();
+}
+
+function formatRuleHit(hit: RuleHit): string {
+  const meta = hit.metadata;
+  const parts = [
+    `- [${meta.label}/${meta.scope}] ${hit.text}`,
+    `  action: ${meta.action}`,
+  ];
+  if (meta.condition) {
+    parts.push(`  condition: ${meta.condition}`);
+  }
+  if (meta.constraint) {
+    parts.push(`  constraint: ${meta.constraint}`);
+  }
+  if (meta.exception) {
+    parts.push(`  exception: ${meta.exception}`);
+  }
+  return parts.join("\n");
+}
+
 export function formatElephanceContext(
   memoryHits: MemoryHit[],
-  schemaHits: SchemaHit[]
+  schemaHits: SchemaHit[],
+  ruleHits: RuleHit[] = []
 ): string {
-  if (memoryHits.length === 0 && schemaHits.length === 0) {
+  if (memoryHits.length === 0 && schemaHits.length === 0 && ruleHits.length === 0) {
     return "";
   }
 
   const sections: string[] = ["<elephance_context>"];
+  if (ruleHits.length > 0) {
+    sections.push("Relevant rules:");
+    sections.push(ruleHits.map(formatRuleHit).join("\n"));
+  }
   if (memoryHits.length > 0) {
     sections.push("Relevant user memory:");
     sections.push(memoryHits.map(formatMemoryHit).join("\n"));
@@ -71,14 +105,20 @@ export async function createMemoryContext(
   input: MemoryContextInput
 ): Promise<MemoryContextResult> {
   const memoryPolicy = resolveMemoryPolicy(input.memory, input.userId);
+  const rulePolicy = resolveRulePolicy(input.rules, {
+    userId: input.userId,
+    projectId: input.projectId,
+    repoPath: input.repoPath,
+    client: input.client,
+  });
   const schemaPolicy = resolveSchemaPolicy(input.schema);
   const query = (input.query ?? latestUserText(input.messages)).trim();
 
   if (query.length === 0) {
-    return { contextText: "", memoryHits: [], schemaHits: [] };
+    return { contextText: "", memoryHits: [], ruleHits: [], schemaHits: [] };
   }
 
-  const [memoryHits, schemaHits] = await Promise.all([
+  const [memoryHits, ruleHits, schemaHits] = await Promise.all([
     memoryPolicy.autoRetrieve
       ? queryMemory(
           query,
@@ -89,6 +129,18 @@ export async function createMemoryContext(
           )
         )
       : Promise.resolve([] as MemoryHit[]),
+    rulePolicy.autoRetrieve
+      ? queryRules(query, {
+          topK: rulePolicy.topK,
+          minimal: rulePolicy.minimal,
+          maxTextChars: rulePolicy.maxTextChars,
+          userId: rulePolicy.userId,
+          projectId: rulePolicy.projectId,
+          repoPath: rulePolicy.repoPath,
+          client: rulePolicy.client,
+          recordHit: true,
+        })
+      : Promise.resolve([] as RuleHit[]),
     schemaPolicy.autoRetrieve
       ? queryProjectSchema(
           query,
@@ -101,9 +153,15 @@ export async function createMemoryContext(
       : Promise.resolve([] as SchemaHit[]),
   ]);
 
+  const compactRuleHits = ruleHits.map((hit) => ({
+    ...hit,
+    text: compactText(hit.text, rulePolicy.minimal, rulePolicy.maxTextChars),
+  }));
+
   return {
-    contextText: formatElephanceContext(memoryHits, schemaHits),
+    contextText: formatElephanceContext(memoryHits, schemaHits, compactRuleHits),
     memoryHits,
+    ruleHits: compactRuleHits,
     schemaHits,
   };
 }

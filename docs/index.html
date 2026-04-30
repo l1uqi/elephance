@@ -50,7 +50,7 @@
       <section class="summary-grid" aria-label="Package summary">
         <article>
           <strong>@elephance/core</strong>
-          <span data-i18n="summary.core">Core SDK for memory and schema search. Published as 0.2.0.</span>
+          <span data-i18n="summary.core">Core SDK for memory, rule, and schema search. Published as 0.2.0.</span>
         </article>
         <article>
           <strong>@elephance/agent</strong>
@@ -96,7 +96,8 @@ const hits = await queryMemory("How should I answer?", { topK: 3 });</code></pre
             <pre><code>configure({
   dbPath: ".lancedb",
   memoryTable: "memory",
-  schemaTable: "project_schema"
+  schemaTable: "project_schema",
+  ruleTable: "rule_memory"
 });</code></pre>
           </article>
           <article class="api-item">
@@ -118,6 +119,28 @@ const hits = await queryMemory("How should I answer?", { topK: 3 });</code></pre
             <h3>clearUserMemory(userId)</h3>
             <p data-i18n="sdk.clear">Delete all memory rows for a user.</p>
             <pre><code>await clearUserMemory("user-123");</code></pre>
+          </article>
+          <article class="api-item">
+            <h3>upsertRule(text, metadata)</h3>
+            <p data-i18n="sdk.upsertRule">Store a structured rule such as a project convention or coding style preference.</p>
+            <pre><code>await upsertRule("Button radius should stay under 8px.", {
+  label: "ui_preference",
+  scope: "project",
+  projectId: "my-app",
+  action: "Keep button radius under 8px."
+});</code></pre>
+          </article>
+          <article class="api-item">
+            <h3>queryRules(query, options)</h3>
+            <p data-i18n="sdk.queryRules">Search active rules and optionally record hits.</p>
+            <pre><code>const rules = await queryRules("build a button", {
+  projectId: "my-app",
+  recordHit: true
+});</code></pre>
+          </article>
+          <article class="api-item">
+            <h3>listRules(options)</h3>
+            <p data-i18n="sdk.listRules">List rules for reflection, inspection, and maintenance.</p>
           </article>
           <article class="api-item">
             <h3>replaceProjectSchemaForSource(source, updatedAt, chunks)</h3>
@@ -161,7 +184,7 @@ const hits = await queryMemory("How should I answer?", { topK: 3 });</code></pre
           <h2 data-i18n="agent.title">Memory orchestration</h2>
         </div>
         <p class="section-copy" data-i18n="agent.copy">
-          Use the agent package when your app controls the model call. It retrieves memory before the LLM request, injects compact context, extracts memory candidates after the response, and writes only according to your policy.
+          Use the agent package when your app controls the model call. It retrieves memory and rules before the LLM request, injects compact context, extracts memory/rule candidates after the response, and writes only according to your policy.
         </p>
         <pre><code>npm install @elephance/agent @elephance/core openai</code></pre>
         <pre><code>import { createElephanceAgent } from "@elephance/agent";
@@ -174,6 +197,12 @@ const agent = createElephanceAgent({
   memory: {
     autoRetrieve: true,
     autoWrite: "dry-run"
+  },
+  rules: {
+    autoRetrieve: true,
+    autoExtract: true,
+    autoWrite: "dry-run",
+    extractor: "heuristic"
   },
   llm: {
     async chat(messages) {
@@ -209,6 +238,18 @@ const result = await agent.chat([
             <h3>commitMemoryCandidates(candidates)</h3>
             <p data-i18n="agent.commit">Write accepted candidates through the configured policy.</p>
           </article>
+          <article class="api-item">
+            <h3>commitRuleCandidates(candidates)</h3>
+            <p data-i18n="agent.commitRules">Judge rule candidates as add, merge, conflict, or skip before writing.</p>
+          </article>
+          <article class="api-item">
+            <h3>selfReflectRules(options)</h3>
+            <p data-i18n="agent.reflectRules">Dry-run rule maintenance suggestions for consolidation, conflicts, clarification, and pruning.</p>
+          </article>
+          <article class="api-item">
+            <h3>rules.extractor: "llm"</h3>
+            <p data-i18n="agent.ruleExtractor">Self-hosted agents can opt into LLM rule extraction with the same chat adapter; MCP clients keep explicit tools.</p>
+          </article>
         </div>
       </section>
 
@@ -225,9 +266,14 @@ const result = await agent.chat([
           <div class="table-row"><code>memory_upsert</code><span data-i18n="mcp.memoryUpsert">Store a short user memory.</span></div>
           <div class="table-row"><code>memory_query</code><span data-i18n="mcp.memoryQuery">Search stored memories.</span></div>
           <div class="table-row"><code>memory_clear_user</code><span data-i18n="mcp.memoryClear">Delete one user's memories.</span></div>
-          <div class="table-row"><code>context_query</code><span data-i18n="mcp.contextQuery">Build compact task context from memory and schema.</span></div>
+          <div class="table-row"><code>context_query</code><span data-i18n="mcp.contextQuery">Build compact task context from memory, rules, and schema.</span></div>
           <div class="table-row"><code>memory_extract_candidates</code><span data-i18n="mcp.memoryExtract">Dry-run extraction of durable memory candidates.</span></div>
           <div class="table-row"><code>memory_commit_candidates</code><span data-i18n="mcp.memoryCommit">Write accepted memory candidates after policy filtering.</span></div>
+          <div class="table-row"><code>rule_upsert</code><span data-i18n="mcp.ruleUpsert">Store a durable structured rule.</span></div>
+          <div class="table-row"><code>rule_query</code><span data-i18n="mcp.ruleQuery">Search active rules.</span></div>
+          <div class="table-row"><code>rule_extract_candidates</code><span data-i18n="mcp.ruleExtract">Dry-run extraction of rule candidates.</span></div>
+          <div class="table-row"><code>rule_commit_candidates</code><span data-i18n="mcp.ruleCommit">Judge and write accepted rule candidates.</span></div>
+          <div class="table-row"><code>rule_reflect</code><span data-i18n="mcp.ruleReflect">Suggest rule consolidation, conflict resolution, and pruning.</span></div>
           <div class="table-row"><code>schema_replace_source</code><span data-i18n="mcp.schemaReplace">Replace schema chunks for a source.</span></div>
           <div class="table-row"><code>schema_delete_source</code><span data-i18n="mcp.schemaDelete">Delete schema chunks for a source.</span></div>
           <div class="table-row"><code>schema_query</code><span data-i18n="mcp.schemaQuery">Search schema semantically.</span></div>
@@ -266,6 +312,7 @@ node E:\github\lancedb-vector-store\packages\mcp\dist\server.js</code></pre>
           <code>ELEPHANCE_DB_PATH</code>
           <code>ELEPHANCE_MEMORY_TABLE</code>
           <code>ELEPHANCE_SCHEMA_TABLE</code>
+          <code>ELEPHANCE_RULE_TABLE</code>
           <code>OPENAI_API_KEY</code>
           <code>OPENAI_EMBEDDING_MODEL</code>
           <code>OPENAI_RELAY_BASE_URL</code>
@@ -307,7 +354,7 @@ node E:\github\lancedb-vector-store\packages\mcp\dist\server.js</code></pre>
           "hero.sdk": "View SDK",
           "hero.agent": "View Agent",
           "hero.mcp": "View MCP Tools",
-          "summary.core": "Core SDK for memory and schema search. Published as 0.2.0.",
+          "summary.core": "Core SDK for memory, rule, and schema search. Published as 0.2.0.",
           "summary.agent": "Agent orchestration for apps that own the model loop. Published as 0.2.0.",
           "summary.mcp": "Stdio MCP server for Cursor and compatible clients. Published as 0.2.0.",
           "summary.local": "Local-first vector storage in a writable directory.",
@@ -319,18 +366,24 @@ node E:\github\lancedb-vector-store\packages\mcp\dist\server.js</code></pre>
           "sdk.upsert": "Insert or update a short user memory.",
           "sdk.queryMemory": "Search stored memories by semantic similarity.",
           "sdk.clear": "Delete all memory rows for a user.",
+          "sdk.upsertRule": "Store a structured rule such as a project convention or coding style preference.",
+          "sdk.queryRules": "Search active rules and optionally record hits.",
+          "sdk.listRules": "List rules for reflection, inspection, and maintenance.",
           "sdk.replaceSchema": "Replace all schema chunks for one source path.",
           "sdk.querySchema": "Retrieve relevant schema chunks by meaning.",
           "sdk.tableNames": "Fetch schema by exact table names.",
           "sdk.batch": "Run multiple schema searches and merge duplicate sources.",
           "agent.eyebrow": "Agent wrapper",
           "agent.title": "Memory orchestration",
-          "agent.copy": "Use the agent package when your app controls the model call. It retrieves memory before the LLM request, injects compact context, extracts memory candidates after the response, and writes only according to your policy.",
+          "agent.copy": "Use the agent package when your app controls the model call. It retrieves memory and rules before the LLM request, injects compact context, extracts memory/rule candidates after the response, and writes only according to your policy.",
           "agent.create": "Create an agent wrapper around your own chat adapter.",
           "agent.context": "Retrieve and format relevant memory/schema context.",
           "agent.extract": "Extract durable memory candidates without writing by default.",
           "agent.llmExtract": "Use your chat adapter to extract richer project conventions and UI preferences.",
           "agent.commit": "Write accepted candidates through the configured policy.",
+          "agent.commitRules": "Judge rule candidates as add, merge, conflict, or skip before writing.",
+          "agent.reflectRules": "Dry-run rule maintenance suggestions for consolidation, conflicts, clarification, and pruning.",
+          "agent.ruleExtractor": "Self-hosted agents can opt into LLM rule extraction with the same chat adapter; MCP clients keep explicit tools.",
           "mcp.eyebrow": "MCP Server",
           "mcp.title": "Cursor tools",
           "mcp.tool": "Tool",
@@ -338,9 +391,14 @@ node E:\github\lancedb-vector-store\packages\mcp\dist\server.js</code></pre>
           "mcp.memoryUpsert": "Store a short user memory.",
           "mcp.memoryQuery": "Search stored memories.",
           "mcp.memoryClear": "Delete one user's memories.",
-          "mcp.contextQuery": "Build compact task context from memory and schema.",
+          "mcp.contextQuery": "Build compact task context from memory, rules, and schema.",
           "mcp.memoryExtract": "Dry-run extraction of durable memory candidates.",
           "mcp.memoryCommit": "Write accepted memory candidates after policy filtering.",
+          "mcp.ruleUpsert": "Store a durable structured rule.",
+          "mcp.ruleQuery": "Search active rules.",
+          "mcp.ruleExtract": "Dry-run extraction of rule candidates.",
+          "mcp.ruleCommit": "Judge and write accepted rule candidates.",
+          "mcp.ruleReflect": "Suggest rule consolidation, conflict resolution, and pruning.",
           "mcp.schemaReplace": "Replace schema chunks for a source.",
           "mcp.schemaDelete": "Delete schema chunks for a source.",
           "mcp.schemaQuery": "Search schema semantically.",
@@ -370,7 +428,7 @@ node E:\github\lancedb-vector-store\packages\mcp\dist\server.js</code></pre>
           "hero.sdk": "查看 SDK",
           "hero.agent": "查看 Agent",
           "hero.mcp": "查看 MCP Tools",
-          "summary.core": "提供 memory 和 schema 检索能力的核心 SDK，已发布 0.2.0。",
+          "summary.core": "提供 memory、rule 和 schema 检索能力的核心 SDK，已发布 0.2.0。",
           "summary.agent": "面向自建 Agent 应用的自动记忆编排层，已发布 0.2.0。",
           "summary.mcp": "面向 Cursor 和其他 MCP Client 的 stdio MCP Server，已发布 0.2.0。",
           "summary.local": "本地优先的向量存储，数据写入指定本地目录。",
@@ -382,18 +440,24 @@ node E:\github\lancedb-vector-store\packages\mcp\dist\server.js</code></pre>
           "sdk.upsert": "写入或更新一条短用户记忆。",
           "sdk.queryMemory": "按语义相似度检索已存记忆。",
           "sdk.clear": "删除某个用户的全部记忆。",
+          "sdk.upsertRule": "保存项目约定、代码风格偏好等结构化规则。",
+          "sdk.queryRules": "检索 active rules，并可记录命中。",
+          "sdk.listRules": "列出规则，用于反思、检查和维护。",
           "sdk.replaceSchema": "替换某个 source path 下的全部 schema 分块。",
           "sdk.querySchema": "按语义检索相关 schema 分块。",
           "sdk.tableNames": "按精确表名获取 schema。",
           "sdk.batch": "使用多个关键词查询 schema，并合并重复来源。",
           "agent.eyebrow": "Agent Wrapper",
           "agent.title": "记忆编排",
-          "agent.copy": "当你的应用自己控制模型调用流程时使用 agent 包。它会在 LLM 请求前检索记忆，注入紧凑上下文，在回复后提取候选记忆，并只按你的策略写入。",
+          "agent.copy": "当你的应用自己控制模型调用流程时使用 agent 包。它会在 LLM 请求前检索记忆和规则，注入紧凑上下文，在回复后提取候选记忆/规则，并只按你的策略写入。",
           "agent.create": "围绕你自己的 chat adapter 创建 agent wrapper。",
           "agent.context": "检索并格式化相关 memory/schema 上下文。",
           "agent.extract": "提取可长期保存的候选记忆，默认不写入。",
           "agent.llmExtract": "使用你的 chat adapter 提取更丰富的项目约定和 UI 偏好。",
           "agent.commit": "按配置策略写入已接受的候选记忆。",
+          "agent.commitRules": "写入前将规则候选判断为 add、merge、conflict 或 skip。",
+          "agent.reflectRules": "dry-run 生成规则合并、冲突、澄清和修剪建议。",
+          "agent.ruleExtractor": "自建 Agent 可用同一个 chat adapter 启用 LLM 规则抽取；MCP Client 保持显式 tools。",
           "mcp.eyebrow": "MCP Server",
           "mcp.title": "Cursor Tools",
           "mcp.tool": "Tool",
@@ -401,9 +465,14 @@ node E:\github\lancedb-vector-store\packages\mcp\dist\server.js</code></pre>
           "mcp.memoryUpsert": "写入一条短用户记忆。",
           "mcp.memoryQuery": "检索已存记忆。",
           "mcp.memoryClear": "删除某个用户的记忆。",
-          "mcp.contextQuery": "从 memory 和 schema 构造紧凑任务上下文。",
+          "mcp.contextQuery": "从 memory、rules 和 schema 构造紧凑任务上下文。",
           "mcp.memoryExtract": "dry-run 提取可长期保存的候选记忆。",
           "mcp.memoryCommit": "经过策略过滤后写入已接受的候选记忆。",
+          "mcp.ruleUpsert": "写入一条持久结构化规则。",
+          "mcp.ruleQuery": "检索 active rules。",
+          "mcp.ruleExtract": "dry-run 提取规则候选。",
+          "mcp.ruleCommit": "judge 并写入已接受的规则候选。",
+          "mcp.ruleReflect": "生成规则合并、冲突解决和修剪建议。",
           "mcp.schemaReplace": "替换某个来源的 schema 分块。",
           "mcp.schemaDelete": "删除某个来源的 schema 分块。",
           "mcp.schemaQuery": "按语义检索 schema。",

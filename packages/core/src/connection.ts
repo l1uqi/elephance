@@ -12,6 +12,7 @@ import type { VectorStoreOptions } from "./types.js";
 const DEFAULT_DB_PATH = ".lancedb";
 const DEFAULT_MEMORY_TABLE = "memory";
 const DEFAULT_SCHEMA_TABLE = "project_schema";
+const DEFAULT_RULE_TABLE = "rule_memory";
 
 let dbPromise: Promise<Connection> | null = null;
 let currentOptions: VectorStoreOptions | null = null;
@@ -24,6 +25,7 @@ export function configure(options: VectorStoreOptions = {}): void {
     dbPath: options.dbPath ?? DEFAULT_DB_PATH,
     memoryTable: options.memoryTable ?? DEFAULT_MEMORY_TABLE,
     schemaTable: options.schemaTable ?? DEFAULT_SCHEMA_TABLE,
+    ruleTable: options.ruleTable ?? DEFAULT_RULE_TABLE,
   };
   // Reset connection to apply new config
   dbPromise = null;

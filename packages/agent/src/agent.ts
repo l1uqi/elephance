@@ -1,6 +1,11 @@
 import { createMemoryContext } from "./context.js";
 import { commitMemoryCandidates, extractMemoryCandidates } from "./extraction.js";
-import { resolveMemoryPolicy } from "./policy.js";
+import {
+  commitRuleCandidates,
+  createLlmRuleExtractor,
+  extractRuleCandidates,
+} from "./rules/extraction.js";
+import { resolveMemoryPolicy, resolveRulePolicy } from "./policy.js";
 import type {
   AgentMessage,
   ElephanceAgent,
@@ -9,6 +14,8 @@ import type {
   ElephanceAgentResult,
   MemoryCandidate,
   MemoryCommit,
+  RuleCandidate,
+  RuleCommit,
 } from "./types.js";
 
 function withContext(
@@ -40,10 +47,23 @@ export function createElephanceAgent(
         { ...options.memory, ...runOptions.memory },
         options.userId
       );
+      const rulePolicy = resolveRulePolicy(
+        { ...options.rules, ...runOptions.rules },
+        {
+          userId: options.userId,
+          projectId: options.projectId,
+          repoPath: options.repoPath,
+          client: options.client,
+        }
+      );
       const context = await createMemoryContext({
         messages,
         userId: memoryPolicy.userId,
+        projectId: rulePolicy.projectId,
+        repoPath: rulePolicy.repoPath,
+        client: rulePolicy.client,
         memory: memoryPolicy,
+        rules: rulePolicy,
         schema: { ...options.schema, ...runOptions.schema },
       });
       const augmentedMessages = withContext(messages, context.contextText);
@@ -72,6 +92,39 @@ export function createElephanceAgent(
         ).writes;
       }
 
+      const ruleExtractor =
+        options.ruleExtractor ??
+        (rulePolicy.extractor === "llm"
+          ? createLlmRuleExtractor({
+              llm: options.llm,
+              systemPrompt: rulePolicy.extractorSystemPrompt,
+            })
+          : { extract: extractRuleCandidates });
+      const ruleCandidates: RuleCandidate[] = rulePolicy.autoExtract
+        ? await ruleExtractor.extract({
+            messages,
+            response: message,
+            userId: rulePolicy.userId,
+            projectId: rulePolicy.projectId,
+            repoPath: rulePolicy.repoPath,
+            client: rulePolicy.client,
+            policy: rulePolicy,
+          })
+        : [];
+
+      let ruleWrites: RuleCommit[] = [];
+      if (rulePolicy.autoWrite === "always") {
+        ruleWrites = (
+          await commitRuleCandidates(ruleCandidates, {
+            userId: rulePolicy.userId,
+            projectId: rulePolicy.projectId,
+            repoPath: rulePolicy.repoPath,
+            client: rulePolicy.client,
+            policy: rulePolicy,
+          })
+        ).writes;
+      }
+
       return {
         message,
         messages: [...messages, message],
@@ -79,6 +132,10 @@ export function createElephanceAgent(
         memory: {
           candidates,
           writes,
+        },
+        rules: {
+          candidates: ruleCandidates,
+          writes: ruleWrites,
         },
       };
     },

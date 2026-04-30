@@ -37,16 +37,19 @@ describe("Connection Module", () => {
       expect(config.dbPath).toBe(".lancedb");
       expect(config.memoryTable).toBe("memory");
       expect(config.schemaTable).toBe("project_schema");
+      expect(config.ruleTable).toBe("rule_memory");
     });
 
     it("should allow custom table names", () => {
       configure({ 
         memoryTable: "my_memory",
-        schemaTable: "my_schema"
+        schemaTable: "my_schema",
+        ruleTable: "my_rules"
       });
       const config = getConfig();
       expect(config.memoryTable).toBe("my_memory");
       expect(config.schemaTable).toBe("my_schema");
+      expect(config.ruleTable).toBe("my_rules");
     });
   });
 

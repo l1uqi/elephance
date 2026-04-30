@@ -11,6 +11,7 @@ Current published version: `0.2.0`.
 `@elephance/mcp` turns the core `@elephance/core` SDK into MCP tools:
 
 - user memory write, search, and deletion
+- rule memory write, search, extraction, commit, hit feedback, status updates, and reflection
 - project schema write, deletion, semantic search, exact table lookup, and batch query
 - local-first LanceDB persistence
 - OpenAI-compatible embeddings by default, with the same environment variables as the core SDK
@@ -113,6 +114,7 @@ Add `.lancedb` to your target app's `.gitignore` unless you intentionally want t
 | `ELEPHANCE_DB_PATH` | LanceDB directory for the MCP server. Defaults to `.lancedb`. |
 | `ELEPHANCE_MEMORY_TABLE` | Memory table name. Defaults to `memory`. |
 | `ELEPHANCE_SCHEMA_TABLE` | Schema table name. Defaults to `project_schema`. |
+| `ELEPHANCE_RULE_TABLE` | Rule memory table name. Defaults to `rule_memory`. |
 | `OPENAI_API_KEY` | Required only when using the default OpenAI-compatible embedding provider. |
 | `OPENAI_EMBEDDING_MODEL` | Embedding model. Defaults to `text-embedding-3-small`. |
 | `OPENAI_RELAY_BASE_URL` | OpenAI-compatible base URL. |
@@ -126,9 +128,16 @@ Add `.lancedb` to your target app's `.gitignore` unless you intentionally want t
 | `memory_upsert` | Store a short, non-sensitive user memory. |
 | `memory_query` | Search stored memories by semantic similarity. |
 | `memory_clear_user` | Delete all stored memories for a user. |
-| `context_query` | Build compact memory/schema context for the current task. |
+| `context_query` | Build compact memory/rule/schema context for the current task. |
 | `memory_extract_candidates` | Dry-run extraction of durable memory candidates from messages. |
 | `memory_commit_candidates` | Write accepted memory candidates after policy filtering. |
+| `rule_upsert` | Store or update one durable structured rule. |
+| `rule_query` | Search active rule memory by semantic similarity. |
+| `rule_record_hit` | Record that a rule was used. |
+| `rule_update_status` | Mark a rule `candidate`, `active`, `conflicted`, `deprecated`, or `archived`. |
+| `rule_extract_candidates` | Dry-run extraction of durable rule candidates from messages. |
+| `rule_commit_candidates` | Judge and write accepted rule candidates. |
+| `rule_reflect` | Scan rules and suggest consolidation, conflict resolution, clarification, and pruning. |
 | `schema_replace_source` | Replace all schema chunks for one source path. |
 | `schema_delete_source` | Delete all schema chunks for one source path. |
 | `schema_query` | Search project schema by semantic similarity. |
@@ -175,13 +184,17 @@ Add `.lancedb` to your target app's `.gitignore` unless you intentionally want t
 {
   "query": "Build a user list component",
   "includeMemory": true,
+  "includeRules": true,
   "includeSchema": false,
+  "projectId": "my-app",
+  "client": "cursor",
   "topK": 5,
+  "ruleTopK": 5,
   "maxTextChars": 420
 }
 ```
 
-Use this from Cursor rules before implementation work that may depend on user preferences, UI conventions, coding style, or project facts.
+Use this from Cursor rules before implementation work that may depend on user preferences, active rules, UI conventions, coding style, or project facts. `includeRules` defaults to `true`; retrieved rules record hits automatically.
 
 ### `memory_extract_candidates`
 
@@ -198,6 +211,97 @@ Use this from Cursor rules before implementation work that may depend on user pr
   "minConfidence": 0.72
 }
 ```
+
+### `rule_upsert`
+
+```json
+{
+  "text": "Button border radius should not exceed 8px in this project.",
+  "label": "ui_preference",
+  "scope": "project",
+  "projectId": "my-app",
+  "client": "cursor",
+  "action": "Keep button radius at or below 8px.",
+  "confidence": 0.9,
+  "source": "manual"
+}
+```
+
+### `rule_query`
+
+```json
+{
+  "query": "building a button component",
+  "projectId": "my-app",
+  "client": "cursor",
+  "topK": 5,
+  "recordHit": true
+}
+```
+
+`rule_query` returns active rules by default. Use `includeInactive` or `status` to inspect `candidate`, `conflicted`, `deprecated`, or `archived` rules.
+
+### `rule_extract_candidates`
+
+```json
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "In this project, button radius should never exceed 8px."
+    }
+  ],
+  "projectId": "my-app",
+  "client": "cursor",
+  "defaultScope": "project",
+  "allowedLabels": ["ui_preference", "project_convention"]
+}
+```
+
+This MCP tool intentionally uses the deterministic extractor. It does not require a separate LLM configuration. Self-hosted `@elephance/agent` apps can opt into LLM rule extraction with `rules.extractor: "llm"`.
+
+### `rule_commit_candidates`
+
+```json
+{
+  "candidates": [
+    {
+      "text": "Button border radius should not exceed 8px in this project.",
+      "label": "ui_preference",
+      "scope": "project",
+      "projectId": "my-app",
+      "action": "Keep button radius at or below 8px.",
+      "confidence": 0.91,
+      "source": "user_correction"
+    }
+  ],
+  "dryRun": true,
+  "projectId": "my-app"
+}
+```
+
+The result includes a judge decision for each candidate: `add`, `merge`, `conflict`, or `skip`. Set `dryRun` to `false` only after the host/client has decided to persist the rule.
+
+### `rule_update_status`
+
+```json
+{
+  "id": "rule-id",
+  "status": "deprecated"
+}
+```
+
+### `rule_reflect`
+
+```json
+{
+  "sampleSize": 50,
+  "projectId": "my-app",
+  "dryRun": true
+}
+```
+
+Reflection suggestions include `consolidation`, `conflict_resolution`, `clarification`, and `pruning`. Non-dry-run reflection only applies safe status changes; it does not delete rules.
 
 This tool is a dry-run helper. Cursor can inspect the returned candidates before calling `memory_commit_candidates`.
 
@@ -276,9 +380,12 @@ Search tools accept these optional fields:
 ## Safety Notes
 
 - Do not store secrets, access tokens, passwords, private keys, or sensitive personal data in memory.
+- Do not store secrets, access tokens, passwords, private keys, or sensitive personal data in rules.
 - Keep memory entries short and independently understandable.
+- Keep rule entries short, actionable, and scoped to `user`, `project`, `repo`, `client`, or `global`.
 - Use `user_preference` for stable preferences that should overwrite older values.
 - Use `project_convention`, `ui_preference`, `coding_style`, `architecture_decision`, `note`, `summary`, or `fact` for accumulating reusable context.
+- Prefer `deprecated` or `archived` over hard deletion for old rules.
 - Add `.lancedb` to `.gitignore` unless you intentionally want to commit local vector data.
 
 ## Development

@@ -43,6 +43,21 @@ export {
   type MemoryMetadata,
 } from "./memory.js";
 
+// Rules
+export {
+  upsertRule,
+  listRules,
+  queryRules,
+  recordRuleHit,
+  updateRuleStatus,
+  type RuleHit,
+  type RuleListOptions,
+  type RuleMetadata,
+  type RuleMetadataInput,
+  type RuleQueryOptions,
+  type RuleStatus,
+} from "./rules.js";
+
 // Schema
 export {
   deleteProjectSchemaBySource,
@@ -58,6 +73,7 @@ export type {
   Connection,
   QueryOptions,
   BatchQueryOptions,
+  RuleScope,
 } from "./types.js";
 
 // ============================================================

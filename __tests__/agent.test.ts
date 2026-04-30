@@ -1,13 +1,18 @@
 import { describe, expect, it } from "@jest/globals";
 import {
   createLlmMemoryExtractor,
+  createLlmRuleExtractor,
   createElephanceAgent,
   extractMemoryCandidates,
+  extractRuleCandidates,
   formatElephanceContext,
   looksSensitive,
   parseMemoryCandidatesFromText,
+  parseRuleCandidatesFromText,
   resolveMemoryPolicy,
+  resolveRulePolicy,
   shouldCommitCandidate,
+  shouldCommitRuleCandidate,
   type AgentMessage,
 } from "../packages/agent/src/index.js";
 
@@ -171,5 +176,141 @@ describe("@elephance/agent", () => {
     expect(candidates).toHaveLength(1);
     expect(candidates[0]?.userId).toBe("u1");
     expect(candidates[0]?.label).toBe("ui_preference");
+  });
+
+  it("extracts durable rule candidates in dry-run mode", async () => {
+    const policy = resolveRulePolicy(
+      { autoWrite: "dry-run", defaultScope: "project" },
+      { projectId: "elephance" }
+    );
+    const candidates = await extractRuleCandidates({
+      messages: [
+        {
+          role: "user",
+          content: "这个项目统一：按钮圆角不要超过 8px。",
+        },
+      ],
+      projectId: "elephance",
+      policy,
+    });
+
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0]?.scope).toBe("project");
+    expect(candidates[0]?.projectId).toBe("elephance");
+    expect(candidates[0]?.label).toBe("ui_preference");
+    expect(shouldCommitRuleCandidate(candidates[0]!, policy).ok).toBe(true);
+  });
+
+  it("parses LLM rule extraction JSON", () => {
+    const candidates = parseRuleCandidatesFromText(
+      JSON.stringify({
+        candidates: [
+          {
+            text: "When editing tests in this repo, follow the surrounding test style.",
+            label: "coding_style",
+            scope: "repo",
+            action: "Follow nearby test style.",
+            confidence: 0.88,
+            reason: "The user asked to preserve repo conventions.",
+            source: "user_correction",
+          },
+        ],
+      })
+    );
+
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0]?.label).toBe("coding_style");
+    expect(candidates[0]?.action).toBe("Follow nearby test style.");
+  });
+
+  it("uses an LLM rule extractor adapter and filters candidates through policy", async () => {
+    const policy = resolveRulePolicy(
+      { autoWrite: "dry-run", allowedLabels: ["agent_behavior"] },
+      { userId: "u1" }
+    );
+    const extractor = createLlmRuleExtractor({
+      llm: {
+        async chat(messages) {
+          expect(messages[0]?.role).toBe("system");
+          return {
+            role: "assistant",
+            content: JSON.stringify({
+              candidates: [
+                {
+                  text: "When replying to this user, use Chinese by default.",
+                  label: "agent_behavior",
+                  scope: "user",
+                  action: "Use Chinese by default.",
+                  confidence: 0.9,
+                  source: "user_correction",
+                },
+                {
+                  text: "Store this temporary task.",
+                  label: "temporary",
+                  scope: "user",
+                  action: "Remember a temporary task.",
+                  confidence: 0.99,
+                },
+              ],
+            }),
+          };
+        },
+      },
+    });
+
+    const candidates = await extractor.extract({
+      messages: [{ role: "user", content: "以后默认用中文回答我。" }],
+      userId: "u1",
+      policy,
+    });
+
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0]?.userId).toBe("u1");
+    expect(candidates[0]?.label).toBe("agent_behavior");
+  });
+
+  it("uses configured LLM rule extraction for self-hosted agents", async () => {
+    const calls: AgentMessage[][] = [];
+    const agent = createElephanceAgent({
+      userId: "u1",
+      memory: { autoRetrieve: false, autoWrite: false },
+      rules: {
+        autoRetrieve: false,
+        autoWrite: "dry-run",
+        extractor: "llm",
+        allowedLabels: ["agent_behavior"],
+      },
+      llm: {
+        async chat(messages) {
+          calls.push(messages);
+          if (messages[0]?.name === "elephance_rule_extractor") {
+            return {
+              role: "assistant",
+              content: JSON.stringify({
+                candidates: [
+                  {
+                    text: "When replying to this user, use Chinese by default.",
+                    label: "agent_behavior",
+                    scope: "user",
+                    action: "Use Chinese by default.",
+                    confidence: 0.9,
+                    source: "user_correction",
+                  },
+                ],
+              }),
+            };
+          }
+          return { role: "assistant", content: "ok" };
+        },
+      },
+    });
+
+    const result = await agent.chat([
+      { role: "user", content: "以后默认用中文回答我。" },
+    ]);
+
+    expect(calls).toHaveLength(2);
+    expect(result.rules.candidates).toHaveLength(1);
+    expect(result.rules.candidates[0]?.label).toBe("agent_behavior");
   });
 });

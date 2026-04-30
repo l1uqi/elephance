@@ -12,9 +12,18 @@ export {
 export {
   looksSensitive,
   resolveMemoryPolicy,
+  resolveRulePolicy,
   resolveSchemaPolicy,
   shouldCommitCandidate,
+  shouldCommitRuleCandidate,
 } from "./policy.js";
+export {
+  commitRuleCandidates,
+  createLlmRuleExtractor,
+  extractRuleCandidates,
+  parseRuleCandidatesFromText,
+} from "./rules/extraction.js";
+export { selfReflectRules } from "./rules/reflection.js";
 
 export type {
   AgentMessage,
@@ -23,10 +32,12 @@ export type {
   ChatAdapter,
   ChatAdapterOptions,
   CommitMemoryOptions,
+  CommitRuleOptions,
   ElephanceAgent,
   ElephanceAgentChatOptions,
   ElephanceAgentOptions,
   ElephanceAgentResult,
+  LlmRuleExtractorOptions,
   MemoryCandidate,
   MemoryCommit,
   MemoryCommitResult,
@@ -36,6 +47,20 @@ export type {
   MemoryExtractor,
   MemoryLabel,
   MemoryPolicy,
+  RequiredRulePolicy,
+  RuleCandidate,
+  RuleCommit,
+  RuleCommitDecision,
+  RuleCommitDecisionKind,
+  RuleCommitResult,
+  RuleReflectionSuggestion,
+  RuleReflectionSuggestionKind,
+  RuleExtractionInput,
+  RuleExtractor,
+  RuleExtractorMode,
+  RulePolicy,
+  SelfReflectRulesOptions,
+  SelfReflectRulesResult,
   LlmMemoryExtractorOptions,
   SchemaPolicy,
 } from "./types.js";

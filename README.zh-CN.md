@@ -8,7 +8,7 @@
 
 给 AI 应用、Agent 和 MCP Client 使用的本地向量记忆层。
 
-`elephance` 基于 LanceDB，提供一个轻量 TypeScript SDK，用来持久化用户记忆和项目 Schema。这个仓库是 workspace：核心 SDK 在 `packages/core`，Agent 编排层在 `packages/agent`，MCP Server 在 `packages/mcp`。
+`elephance` 基于 LanceDB，提供一个轻量 TypeScript SDK，用来持久化用户记忆、项目 Schema 和可演化规则。这个仓库是 workspace：核心 SDK 在 `packages/core`，Agent 编排层在 `packages/agent`，MCP Server 在 `packages/mcp`。
 
 [![npm version](https://img.shields.io/npm/v/%40elephance%2Fcore)](https://www.npmjs.com/package/@elephance/core)
 [![MIT License](https://img.shields.io/npm/l/%40elephance%2Fcore)](LICENSE)
@@ -17,14 +17,16 @@
 
 | 包 | 作用 | 文档 |
 | --- | --- | --- |
-| `@elephance/core` | 基于 LanceDB 的核心 TypeScript SDK，提供 memory 和 schema 检索能力。 | [packages/core](packages/core) |
-| `@elephance/agent` | 面向自建 Agent 应用的自动记忆编排层。 | [packages/agent](packages/agent) |
+| `@elephance/core` | 基于 LanceDB 的核心 TypeScript SDK，提供 memory、rule 和 schema 检索能力。 | [packages/core](packages/core) |
+| `@elephance/agent` | 面向自建 Agent 应用的自动记忆和规则编排层。 | [packages/agent](packages/agent) |
 | `@elephance/mcp` | stdio MCP Server，可接入 Cursor 和其他 MCP Client。 | [packages/mcp](packages/mcp/README.zh-CN.md) |
 
 ## 适用场景
 
 - 给 AI 助手增加本地持久记忆。
 - 在自建 Agent runtime 中，模型调用前自动检索记忆，回复后提取候选记忆。
+- 把项目约定、代码风格、UI 偏好和 Agent 行为规范沉淀为结构化规则。
+- 在任务开始前检索 active rules，并记录命中次数用于排序和后续修剪。
 - 为 Cursor 等 MCP Client 扩展可本地检索、可跨会话保留的记忆。
 - 在当前聊天上下文不够用时，检索相关的项目上下文。
 - 保存用户偏好、笔记、摘要或事实。
@@ -115,7 +117,7 @@ npm install @elephance/mcp
 }
 ```
 
-更新 MCP 配置后重启 Cursor。Server 会提供 `memory_upsert`、`memory_query`、`context_query`、`memory_extract_candidates`、`memory_commit_candidates`、`schema_replace_source`、`schema_query` 等 tools。
+更新 MCP 配置后重启 Cursor。Server 会提供 `memory_upsert`、`memory_query`、`context_query`、`memory_extract_candidates`、`memory_commit_candidates`、`rule_query`、`rule_extract_candidates`、`rule_commit_candidates`、`rule_reflect`、`schema_replace_source`、`schema_query` 等 tools。
 
 除非你明确想提交本地向量数据，否则建议把目标项目里的 LanceDB 目录加入 `.gitignore`：
 
@@ -247,6 +249,27 @@ const hits = await queryMemory("应该用什么风格回答这个用户？", {
 console.log(hits);
 ```
 
+当你要保存的是“可复用行为约束”而不是普通笔记时，可以写入结构化规则：
+
+```ts
+import { queryRules, upsertRule } from "@elephance/core";
+
+await upsertRule("这个项目按钮圆角不要超过 8px。", {
+  label: "ui_preference",
+  scope: "project",
+  projectId: "my-app",
+  action: "按钮圆角保持在 8px 以内。",
+  confidence: 0.9,
+  source: "manual",
+});
+
+const rules = await queryRules("实现按钮组件", {
+  projectId: "my-app",
+  topK: 3,
+  recordHit: true,
+});
+```
+
 如果你的应用自己控制模型调用流程，可以使用 `@elephance/agent` 做记忆编排：
 
 ```ts
@@ -257,9 +280,16 @@ configure({ dbPath: "./data/.lancedb" });
 
 const agent = createElephanceAgent({
   userId: "user-123",
+  projectId: "my-app",
   memory: {
     autoRetrieve: true,
     autoWrite: "dry-run",
+  },
+  rules: {
+    autoRetrieve: true,
+    autoExtract: true,
+    autoWrite: "dry-run",
+    extractor: "heuristic",
   },
   llm: {
     async chat(messages) {
@@ -277,7 +307,10 @@ const result = await agent.chat([
 
 console.log(result.message.content);
 console.log(result.memory.candidates);
+console.log(result.rules.candidates);
 ```
+
+自建 Agent 如果希望从普通聊天中更高质量地结构化提炼规则，可以设置 `rules.extractor: "llm"`。它会复用同一个 `ChatAdapter`；Cursor 等 MCP Client 仍保持显式工具调用流程，不需要额外配置大模型。
 
 Cursor、Claude Code、Claude Desktop 等现成 AI Client 仍然建议使用 `@elephance/mcp`，再配合客户端 rules 或 hooks。`@elephance/agent` 适合你自己掌控 LLM 调用流程的应用。
 
@@ -287,6 +320,7 @@ Cursor、Claude Code、Claude Desktop 等现成 AI Client 仍然建议使用 `@e
 - 核心 SDK 用法：[packages/core](packages/core)
 - Agent 编排层用法：[packages/agent](packages/agent)
 - Agent Wrapper 技术方案：[docs/agent-wrapper-technical-plan.zh-CN.md](docs/agent-wrapper-technical-plan.zh-CN.md)
+- 自主规则回写与进化系统设计：[docs/rule-evolution-system.zh-CN.md](docs/rule-evolution-system.zh-CN.md)
 - MCP Server 英文文档：[packages/mcp/README.md](packages/mcp/README.md)
 - MCP Server 中文文档：[packages/mcp/README.zh-CN.md](packages/mcp/README.zh-CN.md)
 - 项目规则模板：[examples/rules.md](examples/rules.md)

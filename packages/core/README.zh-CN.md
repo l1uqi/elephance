@@ -2,9 +2,9 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-面向 TypeScript 应用的本地 LanceDB 向量记忆和项目 Schema 检索 SDK。
+面向 TypeScript 应用的本地 LanceDB 向量记忆、规则记忆和项目 Schema 检索 SDK。
 
-`@elephance/core` 提供一组轻量 API，用来保存持久用户记忆、索引项目 Schema 分块，并通过语义搜索取回相关上下文。它默认本地优先，向量数据会写入你配置的 LanceDB 目录。
+`@elephance/core` 提供一组轻量 API，用来保存持久用户记忆、结构化可复用规则、索引项目 Schema 分块，并通过语义搜索取回相关上下文。它默认本地优先，向量数据会写入你配置的 LanceDB 目录。
 
 ## 安装
 
@@ -50,6 +50,7 @@ configure({
   dbPath: "./data/.lancedb",
   memoryTable: "memory",
   schemaTable: "project_schema",
+  ruleTable: "rule_memory",
 });
 
 configureEmbedding({
@@ -68,6 +69,45 @@ configureEmbedding({
 | `OPENAI_RELAY_BASE_URL` | OpenAI 兼容 base URL，例如代理或中转服务。 |
 | `OPENAI_BASE_URL` | 旧版 base URL 兜底。 |
 | `MEMORY_OVERWRITE_LABELS` | 需要按用户和标签覆盖写入的标签列表，逗号分隔，默认 `user_preference`。 |
+
+## Rule Memory API
+
+Rule memory 适合保存长期可复用的行为约束，例如用户纠正、项目约定、代码风格、UI 偏好和 Agent 行为规范。规则默认写入独立的 `rule_memory` 表。
+
+```ts
+import {
+  listRules,
+  queryRules,
+  recordRuleHit,
+  updateRuleStatus,
+  upsertRule,
+} from "@elephance/core";
+
+const rule = await upsertRule("这个项目按钮圆角不要超过 8px。", {
+  label: "ui_preference",
+  scope: "project",
+  projectId: "my-app",
+  action: "按钮圆角保持在 8px 以内。",
+  confidence: 0.9,
+  source: "manual",
+});
+
+const activeRules = await queryRules("实现按钮组件", {
+  projectId: "my-app",
+  topK: 3,
+  recordHit: true,
+});
+
+const allProjectRules = await listRules({
+  projectId: "my-app",
+  includeInactive: true,
+});
+
+await recordRuleHit(rule.id);
+await updateRuleStatus(rule.id, "deprecated");
+```
+
+规则状态包括 `candidate`、`active`、`conflicted`、`deprecated` 和 `archived`。`queryRules()` 默认只返回 active 规则；需要检查非 active 规则时，可以传 `includeInactive: true` 或显式传 `status`。
 
 ## Memory API
 
@@ -142,6 +182,8 @@ await deleteProjectSchemaBySource("tables/billing_invoice.md");
 | `maxChunksPerSource` | 每个 source 最多合并多少个分块，默认 `1`。 |
 | `mergedTopK` | `batchQueryProjectSchema` 的最大合并结果数，默认 `4`。 |
 
+Rule 查询还支持 `label`、`scope`、`userId`、`projectId`、`repoPath`、`client`、`status`、`includeInactive` 和 `recordHit` 等过滤项。
+
 ## 自定义 Embedding Provider
 
 你可以用自己的 embedding 后端替换默认 OpenAI 兼容 provider。
@@ -179,6 +221,8 @@ import {
 
 - 不要保存密钥、访问 token、密码、私钥或敏感个人数据。
 - 每条 memory 应该短、明确、可独立理解。
+- 每条 rule 应该短、可执行、有明确作用域。项目约定优先用 `project` 或 `repo` scope，个人偏好用 `user` scope。
+- 旧规则不要直接删除，优先标记为 `deprecated` 或 `archived`。
 - 除非你明确想提交本地向量数据，否则把 `.lancedb` 加入 `.gitignore`。
 - 同一个表中的向量应保持相同 embedding 模型和维度。
 

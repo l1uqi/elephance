@@ -11,6 +11,12 @@ import {
   shouldCommitCandidate,
   type AgentMessage,
   type MemoryCandidate,
+  commitRuleCandidates,
+  extractRuleCandidates,
+  resolveRulePolicy,
+  selfReflectRules,
+  shouldCommitRuleCandidate,
+  type RuleCandidate,
 } from "@elephance/agent";
 import {
   batchQueryProjectSchema,
@@ -20,21 +26,28 @@ import {
   queryMemory,
   queryProjectSchema,
   queryProjectSchemaByTableNames,
+  queryRules,
+  recordRuleHit,
   replaceProjectSchemaForSource,
+  updateRuleStatus,
   upsertMemory,
+  upsertRule,
   type BatchQueryOptions,
   type QueryOptions,
+  type RuleQueryOptions,
 } from "@elephance/core";
 
 const DEFAULT_DB_PATH = process.env.ELEPHANCE_DB_PATH ?? ".lancedb";
 const DEFAULT_MEMORY_TABLE = process.env.ELEPHANCE_MEMORY_TABLE ?? "memory";
 const DEFAULT_SCHEMA_TABLE =
   process.env.ELEPHANCE_SCHEMA_TABLE ?? "project_schema";
+const DEFAULT_RULE_TABLE = process.env.ELEPHANCE_RULE_TABLE ?? "rule_memory";
 
 configure({
   dbPath: DEFAULT_DB_PATH,
   memoryTable: DEFAULT_MEMORY_TABLE,
   schemaTable: DEFAULT_SCHEMA_TABLE,
+  ruleTable: DEFAULT_RULE_TABLE,
 });
 
 const queryOptionsSchema = {
@@ -62,12 +75,69 @@ const memoryCandidateSchema = z.object({
   metadata: z.record(z.unknown()).optional(),
 });
 
+const ruleCandidateSchema = z.object({
+  text: z.string().min(1),
+  label: z.string().min(1),
+  scope: z.enum(["global", "user", "project", "client", "repo"]).optional(),
+  userId: z.string().min(1).optional(),
+  projectId: z.string().min(1).optional(),
+  repoPath: z.string().min(1).optional(),
+  client: z.string().min(1).optional(),
+  action: z.string().min(1),
+  condition: z.string().min(1).optional(),
+  constraint: z.string().min(1).optional(),
+  exception: z.string().min(1).optional(),
+  confidence: z.number().min(0).max(1),
+  reason: z.string().optional(),
+  source: z.string().optional(),
+  evidenceIds: z.array(z.string().min(1)).optional(),
+  examples: z.array(z.string().min(1)).optional(),
+  metadata: z.record(z.unknown()).optional(),
+});
+
 const memoryPolicySchema = {
   userId: z.string().min(1).optional(),
   minConfidence: z.number().min(0).max(1).optional(),
   maxCandidatesPerTurn: z.number().int().positive().optional(),
   allowedLabels: z.array(z.string().min(1)).optional(),
   deniedLabels: z.array(z.string().min(1)).optional(),
+};
+
+const rulePolicySchema = {
+  userId: z.string().min(1).optional(),
+  projectId: z.string().min(1).optional(),
+  repoPath: z.string().min(1).optional(),
+  client: z.string().min(1).optional(),
+  defaultScope: z
+    .enum(["global", "user", "project", "client", "repo"])
+    .optional(),
+  minConfidence: z.number().min(0).max(1).optional(),
+  maxCandidatesPerTurn: z.number().int().positive().optional(),
+  allowedLabels: z.array(z.string().min(1)).optional(),
+  deniedLabels: z.array(z.string().min(1)).optional(),
+};
+
+const ruleStatusSchema = z.enum([
+  "candidate",
+  "active",
+  "conflicted",
+  "deprecated",
+  "archived",
+]);
+
+const ruleScopeSchema = z.enum(["global", "user", "project", "client", "repo"]);
+
+const ruleQueryOptionSchema = {
+  ...queryOptionsSchema,
+  label: z.string().min(1).optional(),
+  scope: ruleScopeSchema.optional(),
+  status: z.union([ruleStatusSchema, z.array(ruleStatusSchema)]).optional(),
+  userId: z.string().min(1).optional(),
+  projectId: z.string().min(1).optional(),
+  repoPath: z.string().min(1).optional(),
+  client: z.string().min(1).optional(),
+  includeInactive: z.boolean().optional(),
+  recordHit: z.boolean().optional(),
 };
 
 function asTextJson(value: unknown) {
@@ -88,6 +158,21 @@ function pickQueryOptions(args: QueryOptions): QueryOptions {
     maxTextChars: args.maxTextChars,
     candidateLimit: args.candidateLimit,
     maxChunksPerSource: args.maxChunksPerSource,
+  };
+}
+
+function pickRuleQueryOptions(args: RuleQueryOptions): RuleQueryOptions {
+  return {
+    ...pickQueryOptions(args),
+    label: args.label,
+    scope: args.scope,
+    status: args.status,
+    userId: args.userId,
+    projectId: args.projectId,
+    repoPath: args.repoPath,
+    client: args.client,
+    includeInactive: args.includeInactive,
+    recordHit: args.recordHit,
   };
 }
 
@@ -141,34 +226,154 @@ server.tool(
 );
 
 server.tool(
+  "rule_upsert",
+  "Store or update a durable non-sensitive rule. Use for user corrections, project conventions, coding style, UI preferences, or agent behavior instructions.",
+  {
+    text: z.string().min(1),
+    label: z.string().min(1),
+    scope: ruleScopeSchema,
+    action: z.string().min(1),
+    condition: z.string().min(1).optional(),
+    constraint: z.string().min(1).optional(),
+    exception: z.string().min(1).optional(),
+    status: ruleStatusSchema.default("active"),
+    confidence: z.number().min(0).max(1).default(0.8),
+    userId: z.string().min(1).optional(),
+    projectId: z.string().min(1).optional(),
+    repoPath: z.string().min(1).optional(),
+    client: z.string().min(1).optional(),
+    source: z
+      .enum([
+        "manual",
+        "user_correction",
+        "repeated_pattern",
+        "conversation_summary",
+        "reflection",
+      ])
+      .default("manual"),
+    examples: z.array(z.string().min(1)).optional(),
+    evidenceIds: z.array(z.string().min(1)).optional(),
+    supersedes: z.array(z.string().min(1)).optional(),
+    conflictWith: z.array(z.string().min(1)).optional(),
+    id: z.string().min(1).optional(),
+  },
+  async ({ text, ...metadata }) => {
+    const hit = await upsertRule(text, metadata);
+    return asTextJson(hit);
+  }
+);
+
+server.tool(
+  "rule_query",
+  "Search active rule memory by semantic similarity, optionally scoped to a user, project, repo, or client.",
+  {
+    query: z.string().min(1),
+    ...ruleQueryOptionSchema,
+  },
+  async ({ query, ...options }) => {
+    const hits = await queryRules(query, pickRuleQueryOptions(options));
+    return asTextJson(hits);
+  }
+);
+
+server.tool(
+  "rule_record_hit",
+  "Record that a rule was used, increasing its hit count and lastHitAt timestamp.",
+  {
+    id: z.string().min(1),
+  },
+  async ({ id }) => {
+    const hit = await recordRuleHit(id);
+    return asTextJson({ ok: Boolean(hit), rule: hit });
+  }
+);
+
+server.tool(
+  "rule_update_status",
+  "Update a rule status without deleting it. Prefer deprecated or archived over hard deletion.",
+  {
+    id: z.string().min(1),
+    status: ruleStatusSchema,
+  },
+  async ({ id, status }) => {
+    const hit = await updateRuleStatus(id, status);
+    return asTextJson({ ok: Boolean(hit), rule: hit });
+  }
+);
+
+server.tool(
+  "rule_reflect",
+  "Scan rule memory and suggest consolidation, conflict resolution, clarification, and pruning actions. Defaults to dryRun.",
+  {
+    sampleSize: z.number().int().positive().optional(),
+    includeDeprecated: z.boolean().optional(),
+    dryRun: z.boolean().default(true),
+    label: z.string().min(1).optional(),
+    scope: ruleScopeSchema.optional(),
+    userId: z.string().min(1).optional(),
+    projectId: z.string().min(1).optional(),
+    repoPath: z.string().min(1).optional(),
+    client: z.string().min(1).optional(),
+    staleDays: z.number().int().positive().optional(),
+    lowConfidenceThreshold: z.number().min(0).max(1).optional(),
+  },
+  async (options) => {
+    const result = await selfReflectRules(options);
+    return asTextJson(result);
+  }
+);
+
+server.tool(
   "context_query",
   "Build compact Elephance context for the current task by querying memory and optionally project schema.",
   {
     query: z.string().min(1).optional(),
     messages: z.array(agentMessageSchema).optional(),
     userId: z.string().min(1).optional(),
+    projectId: z.string().min(1).optional(),
+    repoPath: z.string().min(1).optional(),
+    client: z.string().min(1).optional(),
     includeMemory: z.boolean().default(true),
+    includeRules: z.boolean().default(true),
     includeSchema: z.boolean().default(false),
     topK: z.number().int().positive().optional(),
+    ruleTopK: z.number().int().positive().optional(),
     maxTextChars: z.number().int().positive().optional(),
   },
   async ({
     query,
     messages,
     userId,
+    projectId,
+    repoPath,
+    client,
     includeMemory,
+    includeRules,
     includeSchema,
     topK,
+    ruleTopK,
     maxTextChars,
   }) => {
     const context = await createMemoryContext({
       query,
       messages: messages as AgentMessage[] | undefined,
       userId,
+      projectId,
+      repoPath,
+      client,
       memory: {
         autoRetrieve: includeMemory,
         topK,
         maxTextChars,
+      },
+      rules: {
+        autoRetrieve: includeRules,
+        topK: ruleTopK ?? topK,
+        maxTextChars,
+        userId,
+        projectId,
+        repoPath,
+        client,
       },
       schema: {
         autoRetrieve: includeSchema,
@@ -247,6 +452,102 @@ server.tool(
     const result = await commitMemoryCandidates(typedCandidates, {
       userId,
       policy,
+    });
+    return asTextJson(result);
+  }
+);
+
+server.tool(
+  "rule_extract_candidates",
+  "Extract durable, non-sensitive rule candidates from conversation messages. This is a dry-run helper and does not write rules.",
+  {
+    messages: z.array(agentMessageSchema).min(1),
+    response: agentMessageSchema.optional(),
+    ...rulePolicySchema,
+  },
+  async ({
+    messages,
+    response,
+    userId,
+    projectId,
+    repoPath,
+    client,
+    ...policyArgs
+  }) => {
+    const policy = resolveRulePolicy(
+      {
+        ...policyArgs,
+        autoWrite: "dry-run",
+        autoExtract: true,
+        userId,
+        projectId,
+        repoPath,
+        client,
+      },
+      { userId, projectId, repoPath, client }
+    );
+    const candidates = await extractRuleCandidates({
+      messages: messages as AgentMessage[],
+      response: response as AgentMessage | undefined,
+      userId,
+      projectId,
+      repoPath,
+      client,
+      policy,
+    });
+    const decisions = candidates.map((candidate) => {
+      const decision = shouldCommitRuleCandidate(candidate, policy);
+      return {
+        candidate,
+        ok: decision.ok,
+        reason: decision.ok ? undefined : decision.reason,
+      };
+    });
+    return asTextJson({ candidates, decisions });
+  }
+);
+
+server.tool(
+  "rule_commit_candidates",
+  "Write accepted rule candidates after policy filtering. Supports dryRun and should be used only for durable, non-sensitive rules.",
+  {
+    candidates: z.array(ruleCandidateSchema).min(1),
+    dryRun: z.boolean().default(false),
+    similarityAddThreshold: z.number().min(0).max(1).optional(),
+    similarityMergeThreshold: z.number().min(0).max(1).optional(),
+    ...rulePolicySchema,
+  },
+  async ({
+    candidates,
+    dryRun,
+    similarityAddThreshold,
+    similarityMergeThreshold,
+    userId,
+    projectId,
+    repoPath,
+    client,
+    ...policyArgs
+  }) => {
+    const policy = resolveRulePolicy(
+      {
+        ...policyArgs,
+        autoWrite: dryRun ? "dry-run" : "always",
+        userId,
+        projectId,
+        repoPath,
+        client,
+      },
+      { userId, projectId, repoPath, client }
+    );
+    const result = await commitRuleCandidates(candidates as RuleCandidate[], {
+      userId,
+      projectId,
+      repoPath,
+      client,
+      policy,
+      dryRun,
+      similarityAddThreshold,
+      similarityMergeThreshold,
     });
     return asTextJson(result);
   }

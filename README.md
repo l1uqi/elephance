@@ -8,7 +8,7 @@
 
 Local vector memory for AI apps, agents, and MCP clients.
 
-`elephance` wraps LanceDB with a small TypeScript API for durable user memory and project schema retrieval. This repository is a workspace: the core SDK lives in `packages/core`, the agent orchestration package lives in `packages/agent`, and the MCP server lives in `packages/mcp`.
+`elephance` wraps LanceDB with a small TypeScript API for durable user memory, project schema retrieval, and evolvable rule memory. This repository is a workspace: the core SDK lives in `packages/core`, the agent orchestration package lives in `packages/agent`, and the MCP server lives in `packages/mcp`.
 
 [![npm version](https://img.shields.io/npm/v/%40elephance%2Fcore)](https://www.npmjs.com/package/@elephance/core)
 [![MIT License](https://img.shields.io/npm/l/%40elephance%2Fcore)](LICENSE)
@@ -17,14 +17,16 @@ Local vector memory for AI apps, agents, and MCP clients.
 
 | Package | Role | Docs |
 | --- | --- | --- |
-| `@elephance/core` | Core TypeScript SDK for LanceDB-backed memory and schema retrieval. | [packages/core](packages/core) |
-| `@elephance/agent` | Agent memory orchestration for apps that own the model loop. | [packages/agent](packages/agent) |
+| `@elephance/core` | Core TypeScript SDK for LanceDB-backed memory, rules, and schema retrieval. | [packages/core](packages/core) |
+| `@elephance/agent` | Agent memory/rule orchestration for apps that own the model loop. | [packages/agent](packages/agent) |
 | `@elephance/mcp` | Stdio MCP server for Cursor and other MCP-compatible clients. | [packages/mcp](packages/mcp/README.md) |
 
 ## Use Cases
 
 - Give an AI assistant durable local memory.
 - Automatically retrieve memory before an LLM call and extract memory candidates after a response in your own agent runtime.
+- Persist project conventions, coding style, UI preferences, and agent behavior as structured rule memory.
+- Retrieve active rules before a task and record rule hits for future ranking and pruning.
 - Extend Cursor and other MCP clients with local, searchable memory across sessions.
 - Retrieve relevant project context when the active chat context is too small.
 - Store user preferences, notes, summaries, or facts.
@@ -115,7 +117,7 @@ If you use an OpenAI-compatible relay, add it inside `env`:
 }
 ```
 
-Restart Cursor after updating the MCP config. The server exposes tools such as `memory_upsert`, `memory_query`, `context_query`, `memory_extract_candidates`, `memory_commit_candidates`, `schema_replace_source`, and `schema_query`.
+Restart Cursor after updating the MCP config. The server exposes tools such as `memory_upsert`, `memory_query`, `context_query`, `memory_extract_candidates`, `memory_commit_candidates`, `rule_query`, `rule_extract_candidates`, `rule_commit_candidates`, `rule_reflect`, `schema_replace_source`, and `schema_query`.
 
 Add the local LanceDB directory to the target app's `.gitignore` unless you intentionally want to commit local vector data:
 
@@ -247,6 +249,27 @@ const hits = await queryMemory("How should I answer this user?", {
 console.log(hits);
 ```
 
+Store and retrieve structured rules when you want reusable behavior rather than a general note:
+
+```ts
+import { queryRules, upsertRule } from "@elephance/core";
+
+await upsertRule("Button border radius should not exceed 8px in this project.", {
+  label: "ui_preference",
+  scope: "project",
+  projectId: "my-app",
+  action: "Keep button radius at or below 8px.",
+  confidence: 0.9,
+  source: "manual",
+});
+
+const rules = await queryRules("building a button component", {
+  projectId: "my-app",
+  topK: 3,
+  recordHit: true,
+});
+```
+
 Use `@elephance/agent` when your app owns the model call and you want memory orchestration:
 
 ```ts
@@ -257,9 +280,16 @@ configure({ dbPath: "./data/.lancedb" });
 
 const agent = createElephanceAgent({
   userId: "user-123",
+  projectId: "my-app",
   memory: {
     autoRetrieve: true,
     autoWrite: "dry-run",
+  },
+  rules: {
+    autoRetrieve: true,
+    autoExtract: true,
+    autoWrite: "dry-run",
+    extractor: "heuristic",
   },
   llm: {
     async chat(messages) {
@@ -277,7 +307,10 @@ const result = await agent.chat([
 
 console.log(result.message.content);
 console.log(result.memory.candidates);
+console.log(result.rules.candidates);
 ```
+
+For self-hosted agents, set `rules.extractor: "llm"` to use the same `ChatAdapter` for structured rule extraction. MCP clients such as Cursor keep their explicit tool workflow and do not need a separate LLM configuration.
 
 For Cursor, Claude Code, Claude Desktop, and other hosted AI clients, use `@elephance/mcp` plus client rules or hooks. `@elephance/agent` is for applications where you control the LLM call.
 
@@ -287,6 +320,7 @@ For Cursor, Claude Code, Claude Desktop, and other hosted AI clients, use `@elep
 - Core SDK usage: [packages/core](packages/core)
 - Agent wrapper usage: [packages/agent](packages/agent)
 - Agent wrapper technical plan: [docs/agent-wrapper-technical-plan.zh-CN.md](docs/agent-wrapper-technical-plan.zh-CN.md)
+- Rule memory and evolution design: [docs/rule-evolution-system.zh-CN.md](docs/rule-evolution-system.zh-CN.md)
 - MCP server usage: [packages/mcp/README.md](packages/mcp/README.md)
 - MCP server Chinese docs: [packages/mcp/README.zh-CN.md](packages/mcp/README.zh-CN.md)
 - Project rules template: [examples/rules.md](examples/rules.md)

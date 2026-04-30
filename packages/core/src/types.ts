@@ -17,6 +17,8 @@ export interface VectorStoreOptions {
   memoryTable?: string;
   /** Schema table name (default: 'project_schema') */
   schemaTable?: string;
+  /** Rule memory table name (default: 'rule_memory') */
+  ruleTable?: string;
 }
 
 export interface EmbeddingOptions {
@@ -83,6 +85,14 @@ export interface SchemaHit {
   distance: number;
 }
 
+export interface RuleHit {
+  id: string;
+  text: string;
+  metadata: RuleMetadata;
+  distance: number;
+  score: number;
+}
+
 // ============================================================
 // Memory Types
 // ============================================================
@@ -101,6 +111,86 @@ export interface MemoryMetadata {
 }
 
 // ============================================================
+// Rule Types
+// ============================================================
+
+export type RuleScope = "global" | "user" | "project" | "client" | "repo";
+
+export type RuleStatus =
+  | "candidate"
+  | "active"
+  | "conflicted"
+  | "deprecated"
+  | "archived";
+
+export interface RuleMetadata {
+  kind: "rule";
+  label:
+    | "user_preference"
+    | "project_convention"
+    | "coding_style"
+    | "ui_preference"
+    | "agent_behavior"
+    | string;
+  scope: RuleScope;
+  userId?: string;
+  projectId?: string;
+  repoPath?: string;
+  client?: "cursor" | "codex" | "cli" | "sdk" | string;
+  action: string;
+  condition?: string;
+  constraint?: string;
+  exception?: string;
+  version: number;
+  status: RuleStatus;
+  confidence: number;
+  clarityScore?: number;
+  applicabilityScore?: number;
+  hitCount: number;
+  lastHitAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  source:
+    | "manual"
+    | "user_correction"
+    | "repeated_pattern"
+    | "conversation_summary"
+    | "reflection";
+  evidenceIds?: string[];
+  examples?: string[];
+  supersedes?: string[];
+  conflictWith?: string[];
+  [key: string]: unknown;
+}
+
+export type RuleMetadataInput = Partial<RuleMetadata> &
+  Pick<RuleMetadata, "label" | "scope" | "action">;
+
+export interface RuleQueryOptions extends QueryOptions {
+  label?: string;
+  scope?: RuleScope;
+  status?: RuleStatus | RuleStatus[];
+  userId?: string;
+  projectId?: string;
+  repoPath?: string;
+  client?: string;
+  includeInactive?: boolean;
+  recordHit?: boolean;
+}
+
+export interface RuleListOptions {
+  label?: string;
+  scope?: RuleScope;
+  status?: RuleStatus | RuleStatus[];
+  userId?: string;
+  projectId?: string;
+  repoPath?: string;
+  client?: string;
+  includeInactive?: boolean;
+  limit?: number;
+}
+
+// ============================================================
 // Schema Types
 // ============================================================
 
@@ -115,6 +205,13 @@ export interface SchemaChunk {
 // ============================================================
 
 export interface MemoryRow {
+  id: string;
+  text: string;
+  vector: number[];
+  metadata_json: string;
+}
+
+export interface RuleRow {
   id: string;
   text: string;
   vector: number[];

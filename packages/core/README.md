@@ -2,9 +2,9 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-Local LanceDB-backed vector memory and project schema retrieval for TypeScript apps.
+Local LanceDB-backed vector memory, rule memory, and project schema retrieval for TypeScript apps.
 
-`@elephance/core` provides a small SDK for storing durable user memory, indexing project schema chunks, and retrieving relevant context with semantic search. It is local-first by default and stores vectors in a writable LanceDB directory.
+`@elephance/core` provides a small SDK for storing durable user memory, structured reusable rules, indexing project schema chunks, and retrieving relevant context with semantic search. It is local-first by default and stores vectors in a writable LanceDB directory.
 
 ## Install
 
@@ -50,6 +50,7 @@ configure({
   dbPath: "./data/.lancedb",
   memoryTable: "memory",
   schemaTable: "project_schema",
+  ruleTable: "rule_memory",
 });
 
 configureEmbedding({
@@ -68,6 +69,48 @@ configureEmbedding({
 | `OPENAI_RELAY_BASE_URL` | OpenAI-compatible base URL, such as a relay or proxy. |
 | `OPENAI_BASE_URL` | Legacy base URL fallback. |
 | `MEMORY_OVERWRITE_LABELS` | Comma-separated labels that overwrite per user and label. Defaults to `user_preference`. |
+
+## Rule Memory API
+
+Use rule memory for durable behavior constraints such as user corrections, project conventions, coding style, UI preferences, and agent behavior. Rules are stored in the separate `rule_memory` table by default.
+
+```ts
+import {
+  listRules,
+  queryRules,
+  recordRuleHit,
+  updateRuleStatus,
+  upsertRule,
+} from "@elephance/core";
+
+const rule = await upsertRule(
+  "Button border radius should not exceed 8px in this project.",
+  {
+    label: "ui_preference",
+    scope: "project",
+    projectId: "my-app",
+    action: "Keep button radius at or below 8px.",
+    confidence: 0.9,
+    source: "manual",
+  }
+);
+
+const activeRules = await queryRules("building a button component", {
+  projectId: "my-app",
+  topK: 3,
+  recordHit: true,
+});
+
+const allProjectRules = await listRules({
+  projectId: "my-app",
+  includeInactive: true,
+});
+
+await recordRuleHit(rule.id);
+await updateRuleStatus(rule.id, "deprecated");
+```
+
+Rule statuses are `candidate`, `active`, `conflicted`, `deprecated`, and `archived`. `queryRules()` returns active rules by default; pass `includeInactive: true` or an explicit `status` filter to inspect inactive rules.
 
 ## Memory API
 
@@ -142,6 +185,8 @@ await deleteProjectSchemaBySource("tables/billing_invoice.md");
 | `maxChunksPerSource` | Maximum chunks merged for each source. Defaults to `1`. |
 | `mergedTopK` | Maximum merged results for `batchQueryProjectSchema`. Defaults to `4`. |
 
+Rule search also accepts rule filters such as `label`, `scope`, `userId`, `projectId`, `repoPath`, `client`, `status`, `includeInactive`, and `recordHit`.
+
 ## Custom Embedding Provider
 
 You can replace the default OpenAI-compatible provider with your own embedding backend.
@@ -179,6 +224,8 @@ These helpers are exposed for diagnostics, tests, and advanced LanceDB workflows
 
 - Do not store secrets, access tokens, passwords, private keys, or sensitive personal data.
 - Keep memories short, specific, and independently understandable.
+- Keep rules short, actionable, and scoped. Prefer `project` or `repo` scope for project conventions and `user` scope for personal preferences.
+- Do not delete old rules directly when they become stale. Mark them `deprecated` or `archived`.
 - Add `.lancedb` to `.gitignore` unless you intentionally want to commit local vector data.
 - Keep vectors in the same table on the same embedding model and dimensionality.
 
