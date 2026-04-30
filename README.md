@@ -29,6 +29,7 @@ Local vector memory for AI apps, agents, and MCP clients.
 - Persist project conventions, coding style, UI preferences, and agent behavior as structured rule memory.
 - Retrieve active rules before a task and record rule hits for future ranking and pruning.
 - Generate Cursor rules and Codex `AGENTS.md` templates from the command line.
+- Build an opt-in path for promoting repeated local rule improvements into shared team or ecosystem rules.
 - Extend Cursor and other MCP clients with local, searchable memory across sessions.
 - Retrieve relevant project context when the active chat context is too small.
 - Store user preferences, notes, summaries, or facts.
@@ -342,6 +343,7 @@ The rule memory system is informed by recent agent-memory and skill-evolution wo
 | [MemSkill: Learning and Evolving Memory Skills for Self-Evolving Agents](https://arxiv.org/abs/2602.02474) | Memory should evolve through extraction, consolidation, reflection, and pruning. | `@elephance/agent` provides candidate extraction, judge/merge decisions, and `selfReflectRules()`; CLI commands expose `rule reflect`, `rule deprecate`, and `rule archive`. |
 | [Memory for Autonomous LLM Agents: Mechanisms, Evaluation, and Emerging Frontiers](https://arxiv.org/abs/2603.07670) | Agent memory can be organized as a write, manage, read loop. | Write: `memory_commit_candidates` and `rule_commit_candidates`; manage: rule status, hit count, deprecation, archive, reflection; read: semantic retrieval and context injection through SDK, agent, MCP, and CLI. |
 | [De Jure: Iterative LLM Self-Refinement for Structured Extraction of Regulatory Rules](https://arxiv.org/abs/2604.02276) | Natural-language rules benefit from structured fields and judge/repair before commitment. | Rule metadata includes `action`, `condition`, `constraint`, `scope`, `confidence`, `status`, and versioning; `commitRuleCandidates()` returns `add`, `merge`, `conflict`, or `skip`. |
+| [SkillClaw: Let Skills Evolve Collectively with Agentic Evolver](https://arxiv.org/abs/2604.08377) | Skill or rule updates can improve faster when recurring trajectories and failures are aggregated across users over time. | Elephance keeps the current implementation local-first, but the roadmap now treats shared rule repositories, opt-in telemetry, promotion gates, and synchronized team rules as future extensions instead of automatic background behavior. |
 
 ## Documentation
 

@@ -148,6 +148,9 @@ export interface RuleMetadata {
   applicabilityScore?: number;
   hitCount: number;
   lastHitAt?: string;
+  successCount?: number;
+  failureCount?: number;
+  lastFailureAt?: string;
   createdAt: string;
   updatedAt: string;
   source:
@@ -160,6 +163,12 @@ export interface RuleMetadata {
   examples?: string[];
   supersedes?: string[];
   conflictWith?: string[];
+  observations?: RuleObservation[];
+  origin?: "local" | "team" | "shared";
+  promotionStatus?: "local" | "proposed" | "approved" | "rejected";
+  promotedFrom?: string[];
+  sharedRepository?: string;
+  privacyLevel?: "private" | "team" | "public";
   [key: string]: unknown;
 }
 
@@ -188,6 +197,54 @@ export interface RuleListOptions {
   client?: string;
   includeInactive?: boolean;
   limit?: number;
+}
+
+export type RuleObservationOutcome = "success" | "failure" | "correction";
+
+export interface RuleObservation {
+  id: string;
+  outcome: RuleObservationOutcome;
+  createdAt: string;
+  task?: string;
+  note?: string;
+  evidenceId?: string;
+  client?: string;
+}
+
+export interface RuleObservationInput {
+  outcome: RuleObservationOutcome;
+  task?: string;
+  note?: string;
+  evidenceId?: string;
+  client?: string;
+}
+
+export interface RulePromotionOptions {
+  minEvidence?: number;
+  minSuccesses?: number;
+  maxFailures?: number;
+  privacyLevel?: "team" | "public";
+  sharedRepository?: string;
+  dryRun?: boolean;
+}
+
+export interface RulePromotionProposal {
+  ok: boolean;
+  reason?: string;
+  rule: RuleHit;
+  proposal: {
+    ruleId: string;
+    text: string;
+    label: RuleMetadata["label"];
+    scope: RuleScope;
+    action: string;
+    evidenceCount: number;
+    successCount: number;
+    failureCount: number;
+    privacyLevel: "team" | "public";
+    sharedRepository?: string;
+    promotedFrom: string[];
+  };
 }
 
 // ============================================================

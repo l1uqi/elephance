@@ -4,8 +4,10 @@ import * as fs from "node:fs/promises";
 import {
   configure,
   listRules,
+  proposeRulePromotion,
   queryRules,
   recordRuleHit,
+  recordRuleObservation,
   resetConnection,
   setEmbeddingProvider,
   updateRuleStatus,
@@ -119,6 +121,61 @@ describe("Rule Memory Module", () => {
       includeInactive: true,
     });
     expect(allHits[0]?.id).toBe(rule.id);
+  });
+
+  it("records rule observations and proposes promotion only after evidence gates pass", async () => {
+    const rule = await upsertRule("Use existing testing patterns.", {
+      label: "coding_style",
+      scope: "repo",
+      repoPath: "/repo",
+      action: "Follow nearby test style.",
+      privacyLevel: "team",
+    });
+
+    const firstProposal = await proposeRulePromotion(rule.id, {
+      minEvidence: 2,
+      minSuccesses: 2,
+    });
+    expect(firstProposal?.ok).toBe(false);
+    expect(firstProposal?.reason).toContain("evidence");
+
+    const observed = await recordRuleObservation(rule.id, {
+      outcome: "success",
+      task: "add cli test",
+      evidenceId: "task-1",
+      client: "codex",
+    });
+    expect(observed?.metadata.successCount).toBe(1);
+    expect(observed?.metadata.failureCount ?? 0).toBe(0);
+    expect(observed?.metadata.evidenceIds).toContain("task-1");
+    expect(observed?.metadata.observations?.[0]?.outcome).toBe("success");
+
+    await recordRuleObservation(rule.id, {
+      outcome: "success",
+      task: "extend rule test",
+      evidenceId: "task-2",
+    });
+
+    const dryRun = await proposeRulePromotion(rule.id, {
+      minEvidence: 2,
+      minSuccesses: 2,
+      dryRun: true,
+      sharedRepository: "team-rules",
+    });
+    expect(dryRun?.ok).toBe(true);
+    expect(dryRun?.proposal.evidenceCount).toBe(2);
+    expect(dryRun?.rule.metadata.promotionStatus).toBeUndefined();
+
+    const proposal = await proposeRulePromotion(rule.id, {
+      minEvidence: 2,
+      minSuccesses: 2,
+      sharedRepository: "team-rules",
+    });
+    expect(proposal?.ok).toBe(true);
+    expect(proposal?.rule.metadata.promotionStatus).toBe("proposed");
+    expect(proposal?.rule.metadata.origin).toBe("local");
+    expect(proposal?.rule.metadata.privacyLevel).toBe("team");
+    expect(proposal?.rule.metadata.sharedRepository).toBe("team-rules");
   });
 
   it("merges highly similar rule candidates into an existing rule", async () => {

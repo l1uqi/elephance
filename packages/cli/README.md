@@ -74,6 +74,24 @@ Reflect on rules:
 elephance rule reflect --sample 50 --dry-run true
 ```
 
+Record an observation after a rule helped or failed:
+
+```bash
+elephance rule observe <rule-id> \
+  --outcome success \
+  --task "Implemented the matching list hover style." \
+  --evidence-id task-123
+```
+
+Propose a local rule for team/shared promotion after enough evidence exists:
+
+```bash
+elephance rule propose <rule-id> \
+  --min-evidence 2 \
+  --min-successes 2 \
+  --shared-repository team-rules
+```
+
 List conflicts:
 
 ```bash
@@ -89,10 +107,11 @@ elephance rule archive <rule-id>
 
 ## Research Context
 
-The CLI turns the rule-memory ideas into project setup and maintenance commands. `init cursor` and `init codex` generate client templates for the write/manage/read loop described in [Memory for Autonomous LLM Agents](https://arxiv.org/abs/2603.07670), while `rule reflect`, `rule deprecate`, and `rule archive` support the evolving artifact lifecycle suggested by [AutoSkill](https://arxiv.org/abs/2603.01145) and [MemSkill](https://arxiv.org/abs/2602.02474). Structured rule fields follow the extraction direction explored by [De Jure](https://arxiv.org/abs/2604.02276).
+The CLI turns the rule-memory ideas into project setup and maintenance commands. `init cursor` and `init codex` generate client templates for the write/manage/read loop described in [Memory for Autonomous LLM Agents](https://arxiv.org/abs/2603.07670), while `rule reflect`, `rule deprecate`, and `rule archive` support the evolving artifact lifecycle suggested by [AutoSkill](https://arxiv.org/abs/2603.01145) and [MemSkill](https://arxiv.org/abs/2602.02474). Structured rule fields follow the extraction direction explored by [De Jure](https://arxiv.org/abs/2604.02276), and `rule observe` / `rule propose` provide a conservative local-first version of the collective evolution direction in [SkillClaw](https://arxiv.org/abs/2604.08377).
 
 ## Safety
 
 - Do not store secrets, tokens, passwords, private keys, or sensitive personal data.
 - Prefer `deprecated` or `archived` over hard deletion.
 - Use dry-run reflection before applying rule maintenance changes.
+- Shared/team promotion is local metadata only; it does not upload or sync rules.

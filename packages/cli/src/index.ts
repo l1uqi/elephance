@@ -7,9 +7,12 @@ import { selfReflectRules } from "@elephance/agent";
 import {
   configure,
   listRules,
+  proposeRulePromotion,
   queryRules,
+  recordRuleObservation,
   updateRuleStatus,
   upsertRule,
+  type RuleObservationOutcome,
   type RuleScope,
   type RuleStatus,
 } from "@elephance/core";
@@ -38,6 +41,7 @@ const RULE_STATUSES = new Set([
 ]);
 
 const RULE_SCOPES = new Set(["global", "user", "project", "client", "repo"]);
+const OBSERVATION_OUTCOMES = new Set(["success", "failure", "correction"]);
 
 function writeLine(stream: Pick<typeof process.stdout, "write">, text: string) {
   stream.write(`${text}\n`);
@@ -116,6 +120,16 @@ function statusFlag(
   return value as RuleStatus;
 }
 
+function observationOutcomeFlag(
+  flags: Map<string, FlagValue>
+): RuleObservationOutcome {
+  const value = stringFlag(flags, "outcome") ?? "success";
+  if (!OBSERVATION_OUTCOMES.has(value)) {
+    throw new Error("--outcome must be one of success, failure, correction");
+  }
+  return value as RuleObservationOutcome;
+}
+
 function configureFromEnv(env: Record<string, string | undefined>) {
   configure({
     dbPath: env.ELEPHANCE_DB_PATH ?? ".lancedb",
@@ -154,6 +168,8 @@ Usage:
   elephance rule query <query> [--topK 5] [--project-id <id>] [--repo-path <path>]
   elephance rule reflect [--sample 50] [--dry-run=false]
   elephance rule conflicts
+  elephance rule observe <id> [--outcome success|failure|correction] [--task <text>]
+  elephance rule propose <id> [--min-evidence 2] [--min-successes 1] [--dry-run]
   elephance rule deprecate <id>
 
 Environment:
@@ -265,6 +281,45 @@ async function handleRule(
     return;
   }
 
+  if (subcommand === "observe") {
+    const id = rest[0];
+    if (!id) {
+      throw new Error("rule observe requires a rule id");
+    }
+    const rule = await recordRuleObservation(id, {
+      outcome: observationOutcomeFlag(flags),
+      task: stringFlag(flags, "task"),
+      note: stringFlag(flags, "note"),
+      evidenceId: stringFlag(flags, "evidence-id") ?? stringFlag(flags, "evidenceId"),
+      client: stringFlag(flags, "client"),
+    });
+    writeLine(stdout, JSON.stringify({ ok: Boolean(rule), rule }, null, 2));
+    return;
+  }
+
+  if (subcommand === "propose") {
+    const id = rest[0];
+    if (!id) {
+      throw new Error("rule propose requires a rule id");
+    }
+    const proposal = await proposeRulePromotion(id, {
+      minEvidence:
+        numberFlag(flags, "min-evidence") ?? numberFlag(flags, "minEvidence"),
+      minSuccesses:
+        numberFlag(flags, "min-successes") ?? numberFlag(flags, "minSuccesses"),
+      maxFailures:
+        numberFlag(flags, "max-failures") ?? numberFlag(flags, "maxFailures"),
+      privacyLevel:
+        stringFlag(flags, "privacy-level") === "public" ? "public" : "team",
+      sharedRepository:
+        stringFlag(flags, "shared-repository") ??
+        stringFlag(flags, "sharedRepository"),
+      dryRun: booleanFlag(flags, "dry-run"),
+    });
+    writeLine(stdout, JSON.stringify({ ok: Boolean(proposal), result: proposal }, null, 2));
+    return;
+  }
+
   if (subcommand === "deprecate" || subcommand === "archive") {
     const id = rest[0];
     if (!id) {
@@ -276,7 +331,9 @@ async function handleRule(
     return;
   }
 
-  throw new Error("rule command must be add, query, reflect, conflicts, deprecate, or archive");
+  throw new Error(
+    "rule command must be add, query, reflect, conflicts, observe, propose, deprecate, or archive"
+  );
 }
 
 export async function runCli(argv: string[], io: CliIo = {}): Promise<number> {

@@ -112,6 +112,30 @@ await updateRuleStatus(rule.id, "deprecated");
 
 Rule statuses are `candidate`, `active`, `conflicted`, `deprecated`, and `archived`. `queryRules()` returns active rules by default; pass `includeInactive: true` or an explicit `status` filter to inspect inactive rules.
 
+### Rule Observations and Promotion
+
+For collective rule evolution, keep the default local-first behavior and record explicit evidence before promoting a rule:
+
+```ts
+import { proposeRulePromotion, recordRuleObservation } from "@elephance/core";
+
+await recordRuleObservation(rule.id, {
+  outcome: "success",
+  task: "Implemented a matching button component.",
+  evidenceId: "task-2026-04-30-button",
+  client: "codex",
+});
+
+const proposal = await proposeRulePromotion(rule.id, {
+  minEvidence: 2,
+  minSuccesses: 2,
+  sharedRepository: "team-rules",
+  dryRun: true,
+});
+```
+
+`proposeRulePromotion()` never uploads or syncs data. When `dryRun` is false and the evidence gates pass, it only marks the local rule as `promotionStatus: "proposed"` and records metadata such as `origin`, `privacyLevel`, `promotedFrom`, and `sharedRepository`.
+
 ## Memory API
 
 Use memory for short, durable facts such as preferences, notes, summaries, and stable user context.
@@ -191,7 +215,7 @@ Rule search also accepts rule filters such as `label`, `scope`, `userId`, `proje
 
 `@elephance/core` intentionally stays model-free. It implements the local storage, status, retrieval, and hit-feedback layer needed by rule memory, while extraction and judgment live in higher packages.
 
-The shape follows recent agent-memory work: [Memory for Autonomous LLM Agents](https://arxiv.org/abs/2603.07670) frames memory as write/manage/read; [AutoSkill](https://arxiv.org/abs/2603.01145) and [MemSkill](https://arxiv.org/abs/2602.02474) motivate reusable, evolving artifacts; and [De Jure](https://arxiv.org/abs/2604.02276) informs structured rule fields that can be judged, merged, deprecated, or archived.
+The shape follows recent agent-memory work: [Memory for Autonomous LLM Agents](https://arxiv.org/abs/2603.07670) frames memory as write/manage/read; [AutoSkill](https://arxiv.org/abs/2603.01145) and [MemSkill](https://arxiv.org/abs/2602.02474) motivate reusable, evolving artifacts; [De Jure](https://arxiv.org/abs/2604.02276) informs structured rule fields that can be judged, merged, deprecated, or archived; and [SkillClaw](https://arxiv.org/abs/2604.08377) motivates local evidence tracking before any team/shared promotion.
 
 ## Custom Embedding Provider
 

@@ -20,6 +20,7 @@ Elephance 当前已经具备三层能力：
 | [MemSkill: Learning and Evolving Memory Skills for Self-Evolving Agents](https://arxiv.org/abs/2602.02474) | memory skill 需要持续演化，而不是只追加存储。 | `extractRuleCandidates` 负责提取；`commitRuleCandidates` 负责 add/merge/conflict/skip；`selfReflectRules` 和 CLI 的 `rule reflect/deprecate/archive` 负责反思、修剪和状态维护。 |
 | [Memory for Autonomous LLM Agents: Mechanisms, Evaluation, and Emerging Frontiers](https://arxiv.org/abs/2603.07670) | Agent memory 可拆成 write、manage、read 闭环。 | write：`memory_commit_candidates`、`rule_commit_candidates`；manage：`recordRuleHit`、`updateRuleStatus`、deprecated/archive/conflicted 状态；read：`queryMemory`、`queryRules`、`context_query` 和 `createMemoryContext`。 |
 | [De Jure: Iterative LLM Self-Refinement for Structured Extraction of Regulatory Rules](https://arxiv.org/abs/2604.02276) | 将自然语言规则抽取为结构化 rule unit，并通过 judge/retry 提升质量。 | `RuleMetadata` 拆出 `action`、`condition`、`constraint`、`exception`、`scope`、`confidence` 等字段；提交前 judge 会判断新增、合并、冲突或跳过，并为后续 LLM judge/repair 留接口。 |
+| [SkillClaw: Let Skills Evolve Collectively with Agentic Evolver](https://arxiv.org/abs/2604.08377) | 多用户、跨时间的轨迹可以被聚合，由 autonomous evolver 发现反复出现的工作流、工具使用模式和失败模式，并转成共享 skill 更新。 | Elephance 可参考它设计“collective rule evolution”：先保持本地优先，再通过 opt-in 共享仓库、证据聚合、推广门槛、回滚和同步机制，把局部规则改进推广成团队或生态规则。 |
 
 ## 设计目标
 
@@ -28,6 +29,7 @@ Elephance 当前已经具备三层能力：
 3. 规则可版本化、可追踪来源、可废弃、可反思。
 4. 检索时根据语义相似度、命中次数、时效性、作用域进行排序。
 5. 默认保护用户信任：不做无提示的大规模自动写入。
+6. 后续支持可选的团队级规则推广，但必须保留本地优先、显式授权和可审计证据。
 
 ## 非目标
 
@@ -36,12 +38,14 @@ Elephance 当前已经具备三层能力：
 - 不存储 secrets、tokens、passwords、private keys、敏感个人信息。
 - 不假设 MCP server 可以自动读取 Cursor/Codex 的完整上下文。
 - 不直接删除旧规则；先标记 `deprecated` 或 `archived`。
+- 不默认跨用户、跨项目、跨机器同步规则；共享和遥测必须显式 opt-in。
 
 ## 当前实现状态
 
 截至当前实现，主干闭环已经完成：
 
 - `@elephance/core`：新增独立 `rule_memory` 表配置，并实现 `upsertRule`、`queryRules`、`listRules`、`recordRuleHit`、`updateRuleStatus`。
+- `@elephance/core`：新增 `recordRuleObservation`、`proposeRulePromotion`，用于记录规则使用结果并生成本地推广提案。
 - `@elephance/agent`：实现 `extractRuleCandidates`、`createLlmRuleExtractor`、`commitRuleCandidates`、`selfReflectRules`，并将 active rules 注入 `createMemoryContext` 和 `createElephanceAgent().chat()`。
 - 提交流程已支持 judge：`add | merge | conflict | skip`。
 - 自建 Agent 可通过 `rules.extractor: "llm"` 复用同一个 `ChatAdapter` 做 LLM 规则抽取；默认仍是 `heuristic`。
@@ -51,6 +55,8 @@ Elephance 当前已经具备三层能力：
 尚未实现或保持为后续增强：
 
 - 独立 `rule_events`、`rule_reflections` LanceDB 表。
+- 独立 `rule_trajectories` 或 `rule_observations` 表；当前基础版先把 observation 写入 rule metadata。
+- 团队级 shared rule repository、导入/导出、签名、审核、回滚和同步策略；当前基础版只生成本地 promotion proposal。
 - LLM judge/retry 版本的冲突判断和合并摘要。
 - 自动生成并写回更高质量 examples 的 reflection apply 阶段。
 - `rule_list_conflicts`、`rule_deprecate` 等更细粒度 MCP tools；当前可用 `rule_query` + `status` 和 `rule_update_status` 完成。
@@ -144,6 +150,9 @@ export interface RuleMetadata {
 
   hitCount: number;
   lastHitAt?: string;
+  successCount?: number;
+  failureCount?: number;
+  lastFailureAt?: string;
   createdAt: string;
   updatedAt: string;
 
@@ -157,6 +166,13 @@ export interface RuleMetadata {
   examples?: string[];
   supersedes?: string[];
   conflictWith?: string[];
+
+  // 后续用于 collective rule evolution，默认不跨用户同步。
+  origin?: "local" | "team" | "shared";
+  promotionStatus?: "local" | "proposed" | "approved" | "rejected";
+  promotedFrom?: string[];
+  sharedRepository?: string;
+  privacyLevel?: "private" | "team" | "public";
 }
 
 export interface RuleRow {
@@ -500,6 +516,25 @@ CLI 是非 MCP 用户的主要入口，也适合做定期维护任务。
 - 实现 `rule add`、`rule query`、`rule reflect`、`rule conflicts`、`rule deprecate`、`rule archive`。
 - CLI 使用 `ELEPHANCE_DB_PATH`、`ELEPHANCE_MEMORY_TABLE`、`ELEPHANCE_SCHEMA_TABLE`、`ELEPHANCE_RULE_TABLE` 环境变量，与 MCP Server 保持一致。
 
+### Phase 6：Collective Rule Evolution
+
+状态：后续增强。
+
+参考 SkillClaw 的 collective skill evolution，但 Elephance 应采用更保守的本地优先策略：
+
+- 新增可选 observation/event 层，记录规则命中后的成功、失败、用户纠正、重复工具使用模式和 evidence 引用。
+- 新增 `elephance rule propose` 或 SDK API，把多条本地规则和观测聚合成 team rule proposal。
+- 引入 promotion gate：只有满足最小证据数、跨任务复现、无敏感信息、人工确认或显式策略允许时，才从 local rule 晋升为 team/shared rule。
+- 支持 shared repository 的导入/导出、签名、版本、回滚和冲突检查；默认不上传、不同步、不共享。
+- 同步时保留 `origin`、`promotionStatus`、`privacyLevel`、`promotedFrom`，让客户端能区分本地规则、团队规则和共享生态规则。
+
+当前已完成基础版：
+
+- `recordRuleObservation(ruleId, observation)` 会累计 `successCount`、`failureCount`、`evidenceIds` 和最近 observation。
+- `proposeRulePromotion(ruleId, options)` 会检查 `minEvidence`、`minSuccesses`、`maxFailures` 和 `privacyLevel`，通过后仅把本地规则标记为 `promotionStatus: "proposed"`。
+- CLI 已提供 `elephance rule observe` 和 `elephance rule propose`。
+- 该阶段不上传、不同步、不改写 shared repository。
+
 ## 默认策略建议
 
 - `@elephance/agent` 默认 `rules.autoWrite` 为 `false`，因此默认不会自动提取或写入规则。
@@ -512,6 +547,7 @@ CLI 是非 MCP 用户的主要入口，也适合做定期维护任务。
 - `deprecated` 规则默认不检索。
 - `conflicted` 规则只作为 warning 返回。
 - `hitCount` 高的规则不应被低置信新规则自动覆盖。
+- 团队级或生态级规则同步必须默认关闭，并要求显式 opt-in、脱敏和可审计证据。
 
 ## 最小可行版本
 

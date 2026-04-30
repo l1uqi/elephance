@@ -46,6 +46,8 @@ describe("@elephance/cli", () => {
     expect(code).toBe(0);
     expect(stdout.text()).toContain("elephance init cursor");
     expect(stdout.text()).toContain("elephance rule query");
+    expect(stdout.text()).toContain("elephance rule observe");
+    expect(stdout.text()).toContain("elephance rule propose");
   });
 
   it("generates Cursor rules template", async () => {

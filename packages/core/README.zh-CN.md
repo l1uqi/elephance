@@ -109,6 +109,30 @@ await updateRuleStatus(rule.id, "deprecated");
 
 规则状态包括 `candidate`、`active`、`conflicted`、`deprecated` 和 `archived`。`queryRules()` 默认只返回 active 规则；需要检查非 active 规则时，可以传 `includeInactive: true` 或显式传 `status`。
 
+### 规则观测与推广提案
+
+为了支持 collective rule evolution，同时保持本地优先，Elephance 会先记录显式证据，再由用户或宿主应用决定是否把本地规则推广为团队规则：
+
+```ts
+import { proposeRulePromotion, recordRuleObservation } from "@elephance/core";
+
+await recordRuleObservation(rule.id, {
+  outcome: "success",
+  task: "实现了符合规则的按钮组件。",
+  evidenceId: "task-2026-04-30-button",
+  client: "codex",
+});
+
+const proposal = await proposeRulePromotion(rule.id, {
+  minEvidence: 2,
+  minSuccesses: 2,
+  sharedRepository: "team-rules",
+  dryRun: true,
+});
+```
+
+`proposeRulePromotion()` 不会上传或同步数据。`dryRun` 为 false 且证据门槛通过时，它只会把本地规则标记为 `promotionStatus: "proposed"`，并记录 `origin`、`privacyLevel`、`promotedFrom`、`sharedRepository` 等元数据。
+
 ## Memory API
 
 Memory 适合保存短小、稳定、可长期复用的信息，例如用户偏好、笔记、摘要和事实。
@@ -188,7 +212,7 @@ Rule 查询还支持 `label`、`scope`、`userId`、`projectId`、`repoPath`、`
 
 `@elephance/core` 刻意不依赖大模型。它只提供 rule memory 所需的本地存储、状态管理、检索和命中反馈；提取、判断和反思逻辑放在上层包里。
 
-这一层的设计参考了近期 Agent 记忆研究：[Memory for Autonomous LLM Agents](https://arxiv.org/abs/2603.07670) 提供 write/manage/read 闭环视角；[AutoSkill](https://arxiv.org/abs/2603.01145) 和 [MemSkill](https://arxiv.org/abs/2602.02474) 启发了可复用、可演化 artifact 的存储方式；[De Jure](https://arxiv.org/abs/2604.02276) 启发了可判断、可合并、可废弃和可归档的结构化规则字段。
+这一层的设计参考了近期 Agent 记忆研究：[Memory for Autonomous LLM Agents](https://arxiv.org/abs/2603.07670) 提供 write/manage/read 闭环视角；[AutoSkill](https://arxiv.org/abs/2603.01145) 和 [MemSkill](https://arxiv.org/abs/2602.02474) 启发了可复用、可演化 artifact 的存储方式；[De Jure](https://arxiv.org/abs/2604.02276) 启发了可判断、可合并、可废弃和可归档的结构化规则字段；[SkillClaw](https://arxiv.org/abs/2604.08377) 启发了在团队/共享推广前先进行本地证据跟踪。
 
 ## 自定义 Embedding Provider
 

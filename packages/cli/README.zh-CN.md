@@ -74,6 +74,24 @@ elephance rule query "安装依赖" \
 elephance rule reflect --sample 50 --dry-run true
 ```
 
+记录某条规则生效、失败或被纠正的观测：
+
+```bash
+elephance rule observe <rule-id> \
+  --outcome success \
+  --task "实现了符合规则的列表 hover 样式。" \
+  --evidence-id task-123
+```
+
+当证据足够时，把本地规则标记为团队/共享推广提案：
+
+```bash
+elephance rule propose <rule-id> \
+  --min-evidence 2 \
+  --min-successes 2 \
+  --shared-repository team-rules
+```
+
 列出冲突规则：
 
 ```bash
@@ -89,10 +107,11 @@ elephance rule archive <rule-id>
 
 ## 研究背景
 
-CLI 把 rule-memory 思路落到项目初始化和维护命令里。`init cursor` 和 `init codex` 会生成客户端模板，用于承接 [Memory for Autonomous LLM Agents](https://arxiv.org/abs/2603.07670) 中的 write/manage/read 闭环；`rule reflect`、`rule deprecate`、`rule archive` 对应 [AutoSkill](https://arxiv.org/abs/2603.01145) 和 [MemSkill](https://arxiv.org/abs/2602.02474) 提到的可演化 artifact 生命周期。结构化规则字段则参考了 [De Jure](https://arxiv.org/abs/2604.02276) 的规则抽取方向。
+CLI 把 rule-memory 思路落到项目初始化和维护命令里。`init cursor` 和 `init codex` 会生成客户端模板，用于承接 [Memory for Autonomous LLM Agents](https://arxiv.org/abs/2603.07670) 中的 write/manage/read 闭环；`rule reflect`、`rule deprecate`、`rule archive` 对应 [AutoSkill](https://arxiv.org/abs/2603.01145) 和 [MemSkill](https://arxiv.org/abs/2602.02474) 提到的可演化 artifact 生命周期。结构化规则字段参考了 [De Jure](https://arxiv.org/abs/2604.02276) 的规则抽取方向，`rule observe` / `rule propose` 则提供了 [SkillClaw](https://arxiv.org/abs/2604.08377) 集体演化方向的本地优先保守实现。
 
 ## 安全建议
 
 - 不要存储密钥、token、密码、私钥或敏感个人数据。
 - 旧规则优先标记为 `deprecated` 或 `archived`，不要硬删除。
 - 对规则维护操作优先使用 dry-run reflection。
+- 团队/共享推广只是本地 metadata，不会上传或同步规则。

@@ -12,6 +12,10 @@ import type {
   RuleListOptions,
   RuleMetadata,
   RuleMetadataInput,
+  RuleObservation,
+  RuleObservationInput,
+  RulePromotionOptions,
+  RulePromotionProposal,
   RuleQueryOptions,
   RuleRow,
   RuleStatus,
@@ -19,6 +23,7 @@ import type {
 
 const DEFAULT_RULE_TOP_K = 5;
 const DEFAULT_CANDIDATE_LIMIT = 16;
+const DEFAULT_MAX_OBSERVATIONS = 20;
 
 function escapeSqlString(s: string): string {
   return s.replace(/'/g, "''");
@@ -136,7 +141,37 @@ function scoreRule(distance: number, metadata: RuleMetadata): number {
   const similarity = 1 - distance;
   const confidenceBoost = metadata.confidence * 0.15;
   const hitBoost = Math.min(metadata.hitCount, 20) * 0.01;
-  return similarity + confidenceBoost + hitBoost;
+  const successBoost = Math.min(metadata.successCount ?? 0, 20) * 0.01;
+  const failurePenalty = Math.min(metadata.failureCount ?? 0, 20) * 0.015;
+  return similarity + confidenceBoost + hitBoost + successBoost - failurePenalty;
+}
+
+function observationId(ruleId: string, observation: RuleObservationInput, now: string): string {
+  return createHash("sha256")
+    .update(
+      [
+        "rule_observation",
+        ruleId,
+        observation.outcome,
+        observation.task ?? "",
+        observation.note ?? "",
+        observation.evidenceId ?? "",
+        observation.client ?? "",
+        now,
+      ].join("\n"),
+      "utf8"
+    )
+    .digest("hex");
+}
+
+function hitFromRuleRow(row: RuleRow, metadata: RuleMetadata): RuleHit {
+  return {
+    id: row.id,
+    text: row.text,
+    metadata,
+    distance: 0,
+    score: scoreRule(0, metadata),
+  };
 }
 
 async function getRuleRow(id: string): Promise<RuleRow | null> {
@@ -305,12 +340,123 @@ export async function recordRuleHit(id: string): Promise<RuleHit | null> {
     updatedAt: now,
   };
   await updateRuleMetadata(row.id, nextMetadata);
-  return {
-    id: row.id,
+  return hitFromRuleRow(row, nextMetadata);
+}
+
+export async function recordRuleObservation(
+  id: string,
+  observation: RuleObservationInput
+): Promise<RuleHit | null> {
+  const row = await getRuleRow(id);
+  if (!row) {
+    return null;
+  }
+  const metadata = parseMetadataColumn(row.metadata_json) as RuleMetadata;
+  const now = new Date().toISOString();
+  const record: RuleObservation = {
+    id: observationId(row.id, observation, now),
+    outcome: observation.outcome,
+    createdAt: now,
+    task: observation.task,
+    note: observation.note,
+    evidenceId: observation.evidenceId,
+    client: observation.client,
+  };
+  const observations = [...(metadata.observations ?? []), record]
+    .slice(-DEFAULT_MAX_OBSERVATIONS);
+  const evidenceIds = observation.evidenceId
+    ? [...new Set([...(metadata.evidenceIds ?? []), observation.evidenceId])]
+    : metadata.evidenceIds;
+  const successDelta = observation.outcome === "success" ? 1 : 0;
+  const failureDelta =
+    observation.outcome === "failure" || observation.outcome === "correction"
+      ? 1
+      : 0;
+  const nextMetadata: RuleMetadata = {
+    ...metadata,
+    kind: "rule",
+    observations,
+    evidenceIds,
+    successCount: (metadata.successCount ?? 0) + successDelta,
+    failureCount: (metadata.failureCount ?? 0) + failureDelta,
+    lastFailureAt: failureDelta > 0 ? now : metadata.lastFailureAt,
+    updatedAt: now,
+  };
+  await updateRuleMetadata(row.id, nextMetadata);
+  return hitFromRuleRow(row, nextMetadata);
+}
+
+export async function proposeRulePromotion(
+  id: string,
+  options: RulePromotionOptions = {}
+): Promise<RulePromotionProposal | null> {
+  const row = await getRuleRow(id);
+  if (!row) {
+    return null;
+  }
+  const metadata = parseMetadataColumn(row.metadata_json) as RuleMetadata;
+  const evidenceCount = new Set([
+    ...(metadata.evidenceIds ?? []),
+    ...(metadata.observations ?? [])
+      .map((observation) => observation.evidenceId)
+      .filter((value): value is string => Boolean(value)),
+  ]).size;
+  const successCount = metadata.successCount ?? 0;
+  const failureCount = metadata.failureCount ?? 0;
+  const minEvidence = options.minEvidence ?? 2;
+  const minSuccesses = options.minSuccesses ?? 1;
+  const maxFailures = options.maxFailures ?? 0;
+  const privacyLevel = options.privacyLevel ?? "team";
+  const promotedFrom = [...new Set([...(metadata.promotedFrom ?? []), row.id])];
+
+  let reason: string | undefined;
+  if (privacyLevel === "public" && metadata.privacyLevel !== "public") {
+    reason = "public promotion requires an existing public privacy level";
+  } else if (evidenceCount < minEvidence) {
+    reason = `requires at least ${minEvidence} evidence item(s)`;
+  } else if (successCount < minSuccesses) {
+    reason = `requires at least ${minSuccesses} successful observation(s)`;
+  } else if (failureCount > maxFailures) {
+    reason = `allows at most ${maxFailures} failure observation(s)`;
+  }
+
+  const proposal = {
+    ruleId: row.id,
     text: row.text,
-    metadata: nextMetadata,
-    distance: 0,
-    score: scoreRule(0, nextMetadata),
+    label: metadata.label,
+    scope: metadata.scope,
+    action: metadata.action,
+    evidenceCount,
+    successCount,
+    failureCount,
+    privacyLevel,
+    sharedRepository: options.sharedRepository,
+    promotedFrom,
+  };
+
+  const ok = reason === undefined;
+  const nextMetadata: RuleMetadata = {
+    ...metadata,
+    kind: "rule",
+    origin: metadata.origin ?? "local",
+    promotionStatus: ok ? "proposed" : metadata.promotionStatus ?? "local",
+    promotedFrom,
+    privacyLevel: ok ? privacyLevel : metadata.privacyLevel ?? "private",
+    sharedRepository: ok
+      ? options.sharedRepository ?? metadata.sharedRepository
+      : metadata.sharedRepository,
+    updatedAt: ok && !options.dryRun ? new Date().toISOString() : metadata.updatedAt,
+  };
+
+  if (ok && !options.dryRun) {
+    await updateRuleMetadata(row.id, nextMetadata);
+  }
+
+  return {
+    ok,
+    reason,
+    rule: hitFromRuleRow(row, ok && !options.dryRun ? nextMetadata : metadata),
+    proposal,
   };
 }
 
@@ -331,13 +477,7 @@ export async function updateRuleStatus(
     updatedAt: now,
   };
   await updateRuleMetadata(row.id, nextMetadata);
-  return {
-    id: row.id,
-    text: row.text,
-    metadata: nextMetadata,
-    distance: 0,
-    score: scoreRule(0, nextMetadata),
-  };
+  return hitFromRuleRow(row, nextMetadata);
 }
 
 export type {
@@ -345,6 +485,11 @@ export type {
   RuleListOptions,
   RuleMetadata,
   RuleMetadataInput,
+  RuleObservation,
+  RuleObservationInput,
+  RuleObservationOutcome,
+  RulePromotionOptions,
+  RulePromotionProposal,
   RuleQueryOptions,
   RuleStatus,
 } from "./types.js";
