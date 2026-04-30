@@ -75,12 +75,14 @@ npm install @elephance/cli
 
 ## 研究思路来源
 
-Elephance 的 rule memory 系统参考了近期关于 Agent 记忆和技能演化的研究：
+Elephance 的 rule memory 系统参考了近期关于 Agent 记忆和技能演化的研究。项目不是逐字复现论文，而是把其中的思想落到本地优先的 TypeScript SDK、Agent 编排层、MCP Server 和 CLI 里。
 
-- [AutoSkill: Experience-Driven Lifelong Learning via Skill Self-Evolution](https://arxiv.org/abs/2603.01145)：启发了从交互痕迹中沉淀可复用 skill/rule artifact 的方向。
-- [MemSkill: Learning and Evolving Memory Skills for Self-Evolving Agents](https://arxiv.org/abs/2602.02474)：对应到候选提取、合并、反思、修剪这一套持续演化生命周期。
-- [Memory for Autonomous LLM Agents: Mechanisms, Evaluation, and Emerging Frontiers](https://arxiv.org/abs/2603.07670)：提供了 write、manage、read 记忆闭环的整体视角，Elephance 将其落到本地提取、状态治理、语义检索和上下文注入。
-- [De Jure: Iterative LLM Self-Refinement for Structured Extraction of Regulatory Rules](https://arxiv.org/abs/2604.02276)：启发了将自然语言纠正转成结构化规则字段，并在写入前进行 judge/repair 的设计。
+| 论文 | Elephance 采用的思路 | 对应到项目里的位置 |
+| --- | --- | --- |
+| [AutoSkill: Experience-Driven Lifelong Learning via Skill Self-Evolution](https://arxiv.org/abs/2603.01145) | 重复交互痕迹可以沉淀为可复用 artifact，而不是只保留完整聊天记录。 | 从普通聊天中提取 rule candidates，写入可复用的 `rule_memory`；Cursor/Codex 模板会在任务开始前检索并注入 active rules。 |
+| [MemSkill: Learning and Evolving Memory Skills for Self-Evolving Agents](https://arxiv.org/abs/2602.02474) | 记忆需要经历提取、合并、反思、修剪的持续演化生命周期。 | `@elephance/agent` 提供候选提取、judge/merge 和 `selfReflectRules()`；CLI 暴露 `rule reflect`、`rule deprecate`、`rule archive`。 |
+| [Memory for Autonomous LLM Agents: Mechanisms, Evaluation, and Emerging Frontiers](https://arxiv.org/abs/2603.07670) | Agent memory 可以组织成 write、manage、read 闭环。 | write 对应 `memory_commit_candidates`、`rule_commit_candidates`；manage 对应 rule status、hit count、废弃、归档、反思；read 对应 SDK、Agent、MCP、CLI 的语义检索和上下文注入。 |
+| [De Jure: Iterative LLM Self-Refinement for Structured Extraction of Regulatory Rules](https://arxiv.org/abs/2604.02276) | 自然语言规则适合抽取为结构化字段，并在提交前做 judge/repair。 | Rule metadata 包含 `action`、`condition`、`constraint`、`scope`、`confidence`、`status` 和版本；`commitRuleCandidates()` 会返回 `add`、`merge`、`conflict` 或 `skip`。 |
 
 ## 已发布的 npm 包
 

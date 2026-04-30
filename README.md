@@ -334,12 +334,14 @@ npx -y --package @elephance/cli elephance rule reflect --sample 50
 
 ## Research Influences
 
-The rule memory system is informed by recent agent-memory and skill-evolution work:
+The rule memory system is informed by recent agent-memory and skill-evolution work. Elephance does not implement those papers verbatim; it maps their ideas into a local-first TypeScript SDK, agent wrapper, MCP server, and CLI.
 
-- [AutoSkill: Experience-Driven Lifelong Learning via Skill Self-Evolution](https://arxiv.org/abs/2603.01145) inspired the idea of turning repeated user interactions into reusable, injectable artifacts.
-- [MemSkill: Learning and Evolving Memory Skills for Self-Evolving Agents](https://arxiv.org/abs/2602.02474) informed the extract, consolidate, prune, and reflect lifecycle.
-- [Memory for Autonomous LLM Agents: Mechanisms, Evaluation, and Emerging Frontiers](https://arxiv.org/abs/2603.07670) frames agent memory as a write, manage, read loop; Elephance maps that to extraction/commit, reflection/status management, and retrieval/context injection.
-- [De Jure: Iterative LLM Self-Refinement for Structured Extraction of Regulatory Rules](https://arxiv.org/abs/2604.02276) influenced the structured rule fields and the judge/repair direction for future LLM-based rule extraction.
+| Paper | Idea used by Elephance | Where it appears |
+| --- | --- | --- |
+| [AutoSkill: Experience-Driven Lifelong Learning via Skill Self-Evolution](https://arxiv.org/abs/2603.01145) | Repeated interaction traces can become reusable artifacts instead of staying as raw conversation history. | Rule candidates extracted from ordinary chat, reusable `rule_memory` rows, and client templates that inject active rules before work starts. |
+| [MemSkill: Learning and Evolving Memory Skills for Self-Evolving Agents](https://arxiv.org/abs/2602.02474) | Memory should evolve through extraction, consolidation, reflection, and pruning. | `@elephance/agent` provides candidate extraction, judge/merge decisions, and `selfReflectRules()`; CLI commands expose `rule reflect`, `rule deprecate`, and `rule archive`. |
+| [Memory for Autonomous LLM Agents: Mechanisms, Evaluation, and Emerging Frontiers](https://arxiv.org/abs/2603.07670) | Agent memory can be organized as a write, manage, read loop. | Write: `memory_commit_candidates` and `rule_commit_candidates`; manage: rule status, hit count, deprecation, archive, reflection; read: semantic retrieval and context injection through SDK, agent, MCP, and CLI. |
+| [De Jure: Iterative LLM Self-Refinement for Structured Extraction of Regulatory Rules](https://arxiv.org/abs/2604.02276) | Natural-language rules benefit from structured fields and judge/repair before commitment. | Rule metadata includes `action`, `condition`, `constraint`, `scope`, `confidence`, `status`, and versioning; `commitRuleCandidates()` returns `add`, `merge`, `conflict`, or `skip`. |
 
 ## Documentation
 

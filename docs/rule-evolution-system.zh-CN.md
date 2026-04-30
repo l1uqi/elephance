@@ -12,12 +12,14 @@ Elephance 当前已经具备三层能力：
 
 现有 memory 更像“事实、偏好、摘要”的语义存储。本方案引入 `rule memory`，把用户纠正、项目约定、代码风格、客户端行为规范沉淀成结构化、可检索、可演化的规则。
 
-本方案参考以下研究方向：
+本方案参考以下研究方向。Elephance 不逐字复现论文，而是把论文里的机制拆到本地存储、Agent 编排、MCP tools 和 CLI 维护流程里。
 
-- [AutoSkill: Experience-Driven Lifelong Learning via Skill Self-Evolution](https://arxiv.org/abs/2603.01145)：从交互痕迹中提取可复用 skill/rule artifact，启发 Elephance 将普通聊天里的稳定纠正沉淀为规则。
-- [MemSkill: Learning and Evolving Memory Skills for Self-Evolving Agents](https://arxiv.org/abs/2602.02474)：通过 controller、executor、designer 让 memory skill 持续演化，对应 Elephance 的提取、合并、反思、修剪流程。
-- [Memory for Autonomous LLM Agents: Mechanisms, Evaluation, and Emerging Frontiers](https://arxiv.org/abs/2603.07670)：将 agent memory 视为 write、manage、read 闭环，对应 Elephance 的候选写入、状态治理、检索和上下文注入。
-- [De Jure: Iterative LLM Self-Refinement for Structured Extraction of Regulatory Rules](https://arxiv.org/abs/2604.02276)：将自然语言规则抽取为结构化 rule unit，并通过 judge/retry 进行自评修复，启发 Elephance 的结构化 rule metadata 和提交前判断。
+| 论文 | 参考的核心思想 | Elephance 中的具体落点 |
+| --- | --- | --- |
+| [AutoSkill: Experience-Driven Lifelong Learning via Skill Self-Evolution](https://arxiv.org/abs/2603.01145) | 从经验轨迹中形成可复用 skill/rule artifact。 | 普通聊天中的稳定纠正会变成 `RuleCandidate`，经由 `rule_commit_candidates` 或 `commitRuleCandidates()` 写入 `rule_memory`；检索到的 active rules 会作为可注入 artifact 进入上下文。 |
+| [MemSkill: Learning and Evolving Memory Skills for Self-Evolving Agents](https://arxiv.org/abs/2602.02474) | memory skill 需要持续演化，而不是只追加存储。 | `extractRuleCandidates` 负责提取；`commitRuleCandidates` 负责 add/merge/conflict/skip；`selfReflectRules` 和 CLI 的 `rule reflect/deprecate/archive` 负责反思、修剪和状态维护。 |
+| [Memory for Autonomous LLM Agents: Mechanisms, Evaluation, and Emerging Frontiers](https://arxiv.org/abs/2603.07670) | Agent memory 可拆成 write、manage、read 闭环。 | write：`memory_commit_candidates`、`rule_commit_candidates`；manage：`recordRuleHit`、`updateRuleStatus`、deprecated/archive/conflicted 状态；read：`queryMemory`、`queryRules`、`context_query` 和 `createMemoryContext`。 |
+| [De Jure: Iterative LLM Self-Refinement for Structured Extraction of Regulatory Rules](https://arxiv.org/abs/2604.02276) | 将自然语言规则抽取为结构化 rule unit，并通过 judge/retry 提升质量。 | `RuleMetadata` 拆出 `action`、`condition`、`constraint`、`exception`、`scope`、`confidence` 等字段；提交前 judge 会判断新增、合并、冲突或跳过，并为后续 LLM judge/repair 留接口。 |
 
 ## 设计目标
 
