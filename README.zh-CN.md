@@ -8,7 +8,7 @@
 
 给 AI 应用、Agent 和 MCP Client 使用的本地向量记忆层。
 
-`elephance` 基于 LanceDB，提供一个轻量 TypeScript SDK，用来持久化用户记忆和项目 Schema。这个仓库是 workspace：核心 SDK 在 `packages/core`，MCP Server 在 `packages/mcp`。
+`elephance` 基于 LanceDB，提供一个轻量 TypeScript SDK，用来持久化用户记忆和项目 Schema。这个仓库是 workspace：核心 SDK 在 `packages/core`，Agent 编排层在 `packages/agent`，MCP Server 在 `packages/mcp`。
 
 [![npm version](https://img.shields.io/npm/v/%40elephance%2Fcore)](https://www.npmjs.com/package/@elephance/core)
 [![MIT License](https://img.shields.io/npm/l/%40elephance%2Fcore)](LICENSE)
@@ -18,11 +18,13 @@
 | 包 | 作用 | 文档 |
 | --- | --- | --- |
 | `@elephance/core` | 基于 LanceDB 的核心 TypeScript SDK，提供 memory 和 schema 检索能力。 | [packages/core](packages/core) |
+| `@elephance/agent` | 面向自建 Agent 应用的自动记忆编排层。 | [packages/agent](packages/agent) |
 | `@elephance/mcp` | stdio MCP Server，可接入 Cursor 和其他 MCP Client。 | [packages/mcp](packages/mcp/README.zh-CN.md) |
 
 ## 适用场景
 
 - 给 AI 助手增加本地持久记忆。
+- 在自建 Agent runtime 中，模型调用前自动检索记忆，回复后提取候选记忆。
 - 为 Cursor 等 MCP Client 扩展可本地检索、可跨会话保留的记忆。
 - 在当前聊天上下文不够用时，检索相关的项目上下文。
 - 保存用户偏好、笔记、摘要或事实。
@@ -47,6 +49,12 @@
 npm install @elephance/core openai
 ```
 
+自建 Agent 应用里使用自动记忆编排层：
+
+```bash
+npm install @elephance/agent @elephance/core openai
+```
+
 在 Cursor 或其他 MCP Client 中使用 MCP Server：
 
 ```bash
@@ -58,6 +66,7 @@ npm install @elephance/mcp
 ## 已发布的 npm 包
 
 - [`@elephance/core`](https://www.npmjs.com/package/@elephance/core)
+- [`@elephance/agent`](https://www.npmjs.com/package/@elephance/agent)
 - [`@elephance/mcp`](https://www.npmjs.com/package/@elephance/mcp)
 
 ## Cursor MCP 配置
@@ -132,17 +141,37 @@ pnpm add "@elephance/core@file:E:/github/elephance/packages/core" openai
 }
 ```
 
+安装 Agent 编排层：
+
+```powershell
+cd E:\path\to\your-app
+pnpm add "@elephance/agent@file:E:/github/elephance/packages/agent" "@elephance/core@file:E:/github/elephance/packages/core" openai
+```
+
+也可以手动写到目标项目的 `package.json`：
+
+```json
+{
+  "dependencies": {
+    "@elephance/agent": "file:E:/github/elephance/packages/agent",
+    "@elephance/core": "file:E:/github/elephance/packages/core",
+    "openai": "^4.0.0"
+  }
+}
+```
+
 然后在目标项目里安装依赖：
 
 ```bash
 pnpm install
 ```
 
-如果你在另一个项目里同时安装本地 MCP Server 和本地核心 SDK，需要确保 MCP Server 内部依赖的 `@elephance/core` 也解析到本地包：
+如果你在另一个项目里同时安装本地 Agent 编排层、MCP Server 和核心 SDK，需要确保上层包内部依赖的 `@elephance/core` 也解析到本地包：
 
 ```json
 {
   "dependencies": {
+    "@elephance/agent": "file:E:/github/elephance/packages/agent",
     "@elephance/core": "file:E:/github/elephance/packages/core",
     "@elephance/mcp": "file:E:/github/elephance/packages/mcp"
   },
@@ -193,6 +222,8 @@ npm run build
 
 ## 快速开始
 
+如果你希望显式控制读写，直接使用 `@elephance/core`：
+
 ```ts
 import { configure, queryMemory, upsertMemory } from "@elephance/core";
 
@@ -212,10 +243,46 @@ const hits = await queryMemory("应该用什么风格回答这个用户？", {
 console.log(hits);
 ```
 
+如果你的应用自己控制模型调用流程，可以使用 `@elephance/agent` 做记忆编排：
+
+```ts
+import { createElephanceAgent } from "@elephance/agent";
+import { configure } from "@elephance/core";
+
+configure({ dbPath: "./data/.lancedb" });
+
+const agent = createElephanceAgent({
+  userId: "user-123",
+  memory: {
+    autoRetrieve: true,
+    autoWrite: "dry-run",
+  },
+  llm: {
+    async chat(messages) {
+      return {
+        role: "assistant",
+        content: "这里返回你的模型回复。",
+      };
+    },
+  },
+});
+
+const result = await agent.chat([
+  { role: "user", content: "记住，我偏好简洁的 TypeScript 示例。" },
+]);
+
+console.log(result.message.content);
+console.log(result.memory.candidates);
+```
+
+Cursor、Claude Code、Claude Desktop 等现成 AI Client 仍然建议使用 `@elephance/mcp`，再配合客户端 rules 或 hooks。`@elephance/agent` 适合你自己掌控 LLM 调用流程的应用。
+
 ## 文档入口
 
 - 静态 API 网站：[docs](docs)
 - 核心 SDK 用法：[packages/core](packages/core)
+- Agent 编排层用法：[packages/agent](packages/agent)
+- Agent Wrapper 技术方案：[docs/agent-wrapper-technical-plan.zh-CN.md](docs/agent-wrapper-technical-plan.zh-CN.md)
 - MCP Server 英文文档：[packages/mcp/README.md](packages/mcp/README.md)
 - MCP Server 中文文档：[packages/mcp/README.zh-CN.md](packages/mcp/README.zh-CN.md)
 - 项目规则模板：[examples/rules.md](examples/rules.md)

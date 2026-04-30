@@ -1,0 +1,38 @@
+{
+  "name": "@elephance/agent",
+  "version": "0.1.0",
+  "description": "Agent memory orchestration layer for elephance",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "README.zh-CN.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm run build"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "agent",
+    "memory",
+    "llm",
+    "lancedb",
+    "semantic-search",
+    "context"
+  ],
+  "dependencies": {
+    "@elephance/core": "^0.1.0"
+  }
+}

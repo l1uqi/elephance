@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="elephance API reference for local LanceDB vector memory, project schema retrieval, and Cursor MCP integration."
+      content="elephance API reference for local LanceDB vector memory, agent memory orchestration, project schema retrieval, and Cursor MCP integration."
     />
     <title>elephance API</title>
     <link rel="icon" href="./assets/elephance-logo.png" />
@@ -20,6 +20,7 @@
       <div class="header-actions">
         <nav class="top-nav" aria-label="Primary navigation">
           <a href="#sdk" data-i18n="nav.sdk">SDK</a>
+          <a href="#agent" data-i18n="nav.agent">Agent</a>
           <a href="#mcp" data-i18n="nav.mcp">MCP</a>
           <a href="#config" data-i18n="nav.config">Config</a>
           <a href="#deploy" data-i18n="nav.deploy">Deploy</a>
@@ -36,11 +37,12 @@
         <p class="eyebrow" data-i18n="hero.eyebrow">Local vector memory</p>
         <h1 data-i18n="hero.title">elephance API</h1>
         <p class="lede" data-i18n="hero.lede">
-          A small TypeScript SDK and MCP server for local LanceDB memory,
-          project schema retrieval, and Cursor integration.
+          A small TypeScript workspace for local LanceDB memory, agent
+          orchestration, project schema retrieval, and Cursor integration.
         </p>
         <div class="hero-actions">
           <a class="button primary" href="#sdk" data-i18n="hero.sdk">View SDK</a>
+          <a class="button secondary" href="#agent" data-i18n="hero.agent">View Agent</a>
           <a class="button secondary" href="#mcp" data-i18n="hero.mcp">View MCP Tools</a>
         </div>
       </section>
@@ -49,6 +51,10 @@
         <article>
           <strong>@elephance/core</strong>
           <span data-i18n="summary.core">Core SDK for memory and schema search.</span>
+        </article>
+        <article>
+          <strong>@elephance/agent</strong>
+          <span data-i18n="summary.agent">Agent orchestration for apps that own the model loop.</span>
         </article>
         <article>
           <strong>@elephance/mcp</strong>
@@ -149,6 +155,59 @@ const hits = await queryMemory("How should I answer?", { topK: 3 });</code></pre
         </div>
       </section>
 
+      <section class="content-section" id="agent">
+        <div class="section-title">
+          <p class="eyebrow" data-i18n="agent.eyebrow">Agent wrapper</p>
+          <h2 data-i18n="agent.title">Memory orchestration</h2>
+        </div>
+        <p class="section-copy" data-i18n="agent.copy">
+          Use the agent package when your app controls the model call. It retrieves memory before the LLM request, injects compact context, extracts memory candidates after the response, and writes only according to your policy.
+        </p>
+        <pre><code>npm install @elephance/agent @elephance/core openai</code></pre>
+        <pre><code>import { createElephanceAgent } from "@elephance/agent";
+import { configure } from "@elephance/core";
+
+configure({ dbPath: "./data/.lancedb" });
+
+const agent = createElephanceAgent({
+  userId: "user-123",
+  memory: {
+    autoRetrieve: true,
+    autoWrite: "dry-run"
+  },
+  llm: {
+    async chat(messages) {
+      return {
+        role: "assistant",
+        content: "Return your model response here."
+      };
+    }
+  }
+});
+
+const result = await agent.chat([
+  { role: "user", content: "Remember that I prefer concise examples." }
+]);</code></pre>
+        <div class="api-list">
+          <article class="api-item">
+            <h3>createElephanceAgent(options)</h3>
+            <p data-i18n="agent.create">Create an agent wrapper around your own chat adapter.</p>
+          </article>
+          <article class="api-item">
+            <h3>createMemoryContext(input)</h3>
+            <p data-i18n="agent.context">Retrieve and format relevant memory/schema context.</p>
+          </article>
+          <article class="api-item">
+            <h3>extractMemoryCandidates(input)</h3>
+            <p data-i18n="agent.extract">Extract durable memory candidates without writing by default.</p>
+          </article>
+          <article class="api-item">
+            <h3>commitMemoryCandidates(candidates)</h3>
+            <p data-i18n="agent.commit">Write accepted candidates through the configured policy.</p>
+          </article>
+        </div>
+      </section>
+
       <section class="content-section" id="mcp">
         <div class="section-title">
           <p class="eyebrow" data-i18n="mcp.eyebrow">MCP Server</p>
@@ -231,15 +290,18 @@ node E:\github\lancedb-vector-store\packages\mcp\dist\server.js</code></pre>
       const translations = {
         en: {
           "nav.sdk": "SDK",
+          "nav.agent": "Agent",
           "nav.mcp": "MCP",
           "nav.config": "Config",
           "nav.deploy": "Deploy",
           "hero.eyebrow": "Local vector memory",
           "hero.title": "elephance API",
-          "hero.lede": "A small TypeScript SDK and MCP server for local LanceDB memory, project schema retrieval, and Cursor integration.",
+          "hero.lede": "A small TypeScript workspace for local LanceDB memory, agent orchestration, project schema retrieval, and Cursor integration.",
           "hero.sdk": "View SDK",
+          "hero.agent": "View Agent",
           "hero.mcp": "View MCP Tools",
           "summary.core": "Core SDK for memory and schema search.",
+          "summary.agent": "Agent orchestration for apps that own the model loop.",
           "summary.mcp": "Stdio MCP server for Cursor and compatible clients.",
           "summary.local": "Local-first vector storage in a writable directory.",
           "quick.eyebrow": "Quick start",
@@ -254,6 +316,13 @@ node E:\github\lancedb-vector-store\packages\mcp\dist\server.js</code></pre>
           "sdk.querySchema": "Retrieve relevant schema chunks by meaning.",
           "sdk.tableNames": "Fetch schema by exact table names.",
           "sdk.batch": "Run multiple schema searches and merge duplicate sources.",
+          "agent.eyebrow": "Agent wrapper",
+          "agent.title": "Memory orchestration",
+          "agent.copy": "Use the agent package when your app controls the model call. It retrieves memory before the LLM request, injects compact context, extracts memory candidates after the response, and writes only according to your policy.",
+          "agent.create": "Create an agent wrapper around your own chat adapter.",
+          "agent.context": "Retrieve and format relevant memory/schema context.",
+          "agent.extract": "Extract durable memory candidates without writing by default.",
+          "agent.commit": "Write accepted candidates through the configured policy.",
           "mcp.eyebrow": "MCP Server",
           "mcp.title": "Cursor tools",
           "mcp.tool": "Tool",
@@ -280,15 +349,18 @@ node E:\github\lancedb-vector-store\packages\mcp\dist\server.js</code></pre>
         },
         zh: {
           "nav.sdk": "SDK",
+          "nav.agent": "Agent",
           "nav.mcp": "MCP",
           "nav.config": "配置",
           "nav.deploy": "部署",
           "hero.eyebrow": "本地向量记忆",
           "hero.title": "elephance API",
-          "hero.lede": "一个轻量 TypeScript SDK 和 MCP Server，用于本地 LanceDB 记忆、项目 Schema 检索和 Cursor 接入。",
+          "hero.lede": "一个轻量 TypeScript workspace，用于本地 LanceDB 记忆、Agent 编排、项目 Schema 检索和 Cursor 接入。",
           "hero.sdk": "查看 SDK",
+          "hero.agent": "查看 Agent",
           "hero.mcp": "查看 MCP Tools",
           "summary.core": "提供 memory 和 schema 检索能力的核心 SDK。",
+          "summary.agent": "面向自建 Agent 应用的自动记忆编排层。",
           "summary.mcp": "面向 Cursor 和其他 MCP Client 的 stdio MCP Server。",
           "summary.local": "本地优先的向量存储，数据写入指定本地目录。",
           "quick.eyebrow": "快速开始",
@@ -303,6 +375,13 @@ node E:\github\lancedb-vector-store\packages\mcp\dist\server.js</code></pre>
           "sdk.querySchema": "按语义检索相关 schema 分块。",
           "sdk.tableNames": "按精确表名获取 schema。",
           "sdk.batch": "使用多个关键词查询 schema，并合并重复来源。",
+          "agent.eyebrow": "Agent Wrapper",
+          "agent.title": "记忆编排",
+          "agent.copy": "当你的应用自己控制模型调用流程时使用 agent 包。它会在 LLM 请求前检索记忆，注入紧凑上下文，在回复后提取候选记忆，并只按你的策略写入。",
+          "agent.create": "围绕你自己的 chat adapter 创建 agent wrapper。",
+          "agent.context": "检索并格式化相关 memory/schema 上下文。",
+          "agent.extract": "提取可长期保存的候选记忆，默认不写入。",
+          "agent.commit": "按配置策略写入已接受的候选记忆。",
           "mcp.eyebrow": "MCP Server",
           "mcp.title": "Cursor Tools",
           "mcp.tool": "Tool",

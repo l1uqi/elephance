@@ -18,6 +18,7 @@ const options = {
 
 const packages = [
   { workspace: "@elephance/core", path: "packages/core/package.json" },
+  { workspace: "@elephance/agent", path: "packages/agent/package.json" },
   { workspace: "@elephance/mcp", path: "packages/mcp/package.json" },
 ];
 
@@ -74,14 +75,26 @@ function fail(message) {
 
 function validateVersions() {
   const core = readJson("packages/core/package.json");
+  const agent = readJson("packages/agent/package.json");
   const mcp = readJson("packages/mcp/package.json");
+  const declaredAgentCore = agent.dependencies?.["@elephance/core"];
   const declaredCore = mcp.dependencies?.["@elephance/core"];
+
+  if (!declaredAgentCore) {
+    fail("packages/agent/package.json must depend on @elephance/core before publishing.");
+  }
 
   if (!declaredCore) {
     fail("packages/mcp/package.json must depend on @elephance/core before publishing.");
   }
 
   const accepted = new Set([core.version, `^${core.version}`, `~${core.version}`]);
+  if (!accepted.has(declaredAgentCore)) {
+    fail(
+      `@elephance/agent depends on @elephance/core ${declaredAgentCore}, but core version is ${core.version}. Update packages/agent/package.json first.`
+    );
+  }
+
   if (!accepted.has(declaredCore)) {
     fail(
       `@elephance/mcp depends on @elephance/core ${declaredCore}, but core version is ${core.version}. Update packages/mcp/package.json first.`

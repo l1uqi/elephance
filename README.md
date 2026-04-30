@@ -8,7 +8,7 @@
 
 Local vector memory for AI apps, agents, and MCP clients.
 
-`elephance` wraps LanceDB with a small TypeScript API for durable user memory and project schema retrieval. This repository is a workspace: the core SDK lives in `packages/core`, and the MCP server lives in `packages/mcp`.
+`elephance` wraps LanceDB with a small TypeScript API for durable user memory and project schema retrieval. This repository is a workspace: the core SDK lives in `packages/core`, the agent orchestration package lives in `packages/agent`, and the MCP server lives in `packages/mcp`.
 
 [![npm version](https://img.shields.io/npm/v/%40elephance%2Fcore)](https://www.npmjs.com/package/@elephance/core)
 [![MIT License](https://img.shields.io/npm/l/%40elephance%2Fcore)](LICENSE)
@@ -18,11 +18,13 @@ Local vector memory for AI apps, agents, and MCP clients.
 | Package | Role | Docs |
 | --- | --- | --- |
 | `@elephance/core` | Core TypeScript SDK for LanceDB-backed memory and schema retrieval. | [packages/core](packages/core) |
+| `@elephance/agent` | Agent memory orchestration for apps that own the model loop. | [packages/agent](packages/agent) |
 | `@elephance/mcp` | Stdio MCP server for Cursor and other MCP-compatible clients. | [packages/mcp](packages/mcp/README.md) |
 
 ## Use Cases
 
 - Give an AI assistant durable local memory.
+- Automatically retrieve memory before an LLM call and extract memory candidates after a response in your own agent runtime.
 - Extend Cursor and other MCP clients with local, searchable memory across sessions.
 - Retrieve relevant project context when the active chat context is too small.
 - Store user preferences, notes, summaries, or facts.
@@ -47,6 +49,12 @@ Use the core SDK from application code:
 npm install @elephance/core openai
 ```
 
+Use the agent wrapper when you own the model loop:
+
+```bash
+npm install @elephance/agent @elephance/core openai
+```
+
 Use the MCP server from Cursor or another MCP client:
 
 ```bash
@@ -58,6 +66,7 @@ npm install @elephance/mcp
 ## Published Packages
 
 - [`@elephance/core`](https://www.npmjs.com/package/@elephance/core)
+- [`@elephance/agent`](https://www.npmjs.com/package/@elephance/agent)
 - [`@elephance/mcp`](https://www.npmjs.com/package/@elephance/mcp)
 
 ## Cursor MCP Setup
@@ -132,17 +141,37 @@ Or add it manually to your app's `package.json`:
 }
 ```
 
+For the agent wrapper:
+
+```powershell
+cd E:\path\to\your-app
+pnpm add "@elephance/agent@file:E:/github/elephance/packages/agent" "@elephance/core@file:E:/github/elephance/packages/core" openai
+```
+
+Or add it manually to your app's `package.json`:
+
+```json
+{
+  "dependencies": {
+    "@elephance/agent": "file:E:/github/elephance/packages/agent",
+    "@elephance/core": "file:E:/github/elephance/packages/core",
+    "openai": "^4.0.0"
+  }
+}
+```
+
 Then install dependencies in your app:
 
 ```bash
 pnpm install
 ```
 
-If you install both the local MCP server and the local core SDK in another project, make sure the MCP server also resolves `@elephance/core` to the local package:
+If you install the local agent wrapper, MCP server, and core SDK in another project, make sure both higher-level packages resolve `@elephance/core` to the local package:
 
 ```json
 {
   "dependencies": {
+    "@elephance/agent": "file:E:/github/elephance/packages/agent",
     "@elephance/core": "file:E:/github/elephance/packages/core",
     "@elephance/mcp": "file:E:/github/elephance/packages/mcp"
   },
@@ -193,6 +222,8 @@ Then add a server entry to Cursor's MCP config, usually at `C:\Users\<you>\.curs
 
 ## Quick Start
 
+Use `@elephance/core` directly when you want explicit reads and writes:
+
 ```ts
 import { configure, queryMemory, upsertMemory } from "@elephance/core";
 
@@ -212,10 +243,46 @@ const hits = await queryMemory("How should I answer this user?", {
 console.log(hits);
 ```
 
+Use `@elephance/agent` when your app owns the model call and you want memory orchestration:
+
+```ts
+import { createElephanceAgent } from "@elephance/agent";
+import { configure } from "@elephance/core";
+
+configure({ dbPath: "./data/.lancedb" });
+
+const agent = createElephanceAgent({
+  userId: "user-123",
+  memory: {
+    autoRetrieve: true,
+    autoWrite: "dry-run",
+  },
+  llm: {
+    async chat(messages) {
+      return {
+        role: "assistant",
+        content: "Return your model response here.",
+      };
+    },
+  },
+});
+
+const result = await agent.chat([
+  { role: "user", content: "Remember that I prefer concise TypeScript examples." },
+]);
+
+console.log(result.message.content);
+console.log(result.memory.candidates);
+```
+
+For Cursor, Claude Code, Claude Desktop, and other hosted AI clients, use `@elephance/mcp` plus client rules or hooks. `@elephance/agent` is for applications where you control the LLM call.
+
 ## Documentation
 
 - Static API website: [docs](docs)
 - Core SDK usage: [packages/core](packages/core)
+- Agent wrapper usage: [packages/agent](packages/agent)
+- Agent wrapper technical plan: [docs/agent-wrapper-technical-plan.zh-CN.md](docs/agent-wrapper-technical-plan.zh-CN.md)
 - MCP server usage: [packages/mcp/README.md](packages/mcp/README.md)
 - MCP server Chinese docs: [packages/mcp/README.zh-CN.md](packages/mcp/README.zh-CN.md)
 - Project rules template: [examples/rules.md](examples/rules.md)
