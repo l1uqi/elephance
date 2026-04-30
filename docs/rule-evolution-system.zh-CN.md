@@ -1,5 +1,7 @@
 # Elephance 自主规则回写与进化系统设计方案
 
+当前实现版本：`0.3.0`。
+
 ## 背景
 
 Elephance 当前已经具备三层能力：
@@ -249,7 +251,7 @@ await selfReflectRules({
    找出同 scope 下的互斥规则，生成解决建议。
 
 3. Clarification  
-   给规则打 `clarityScore` 和 `applicabilityScore`。低分规则生成示例场景写入 metadata。
+   当前实现用 heuristic 识别过短或含糊的规则，并返回 `add_examples` 建议；后续可进一步写回 `clarityScore`、`applicabilityScore` 和更高质量 examples。
 
 4. Pruning  
    将长期未命中、被 supersede、低置信度的规则标记为 `deprecated` 或 `archived`。
@@ -268,11 +270,11 @@ explicit user correction
   > user/global scope
 ```
 
-冲突不要自动静默解决。对于 Cursor/Codex/CLI 用户，默认返回建议；只有 SDK 用户显式配置 `autoResolve: true` 时才自动修改状态。
+冲突不要自动静默解决。当前实现中，提交阶段会把互斥规则标记为 `conflicted` 并保留 `conflictWith`；reflection 默认 dry-run，只在 `dryRun: false` 时应用安全的状态变更。后续如果引入 `autoResolve`，也应只面向 SDK 用户显式开启。
 
 ## 检索排序
 
-当前 `queryMemory` 只按向量相似度返回。规则检索建议加入重排：
+当前 `queryRules` 已在向量相似度基础上加入 `confidence` 和 `hitCount` 的轻量重排，并默认过滤非 `active` 规则。后续可以继续扩展为更完整的重排：
 
 ```txt
 finalScore =
@@ -288,24 +290,30 @@ finalScore =
 其中：
 
 - `semanticScore` 来自 cosine distance。
-- `hitCountBoost` 避免核心规则被新但弱的规则冲掉。
-- `recencyBoost` 让最近明确纠正的规则更容易浮上来。
-- `scopeBoost` 优先 repo/project/client 精确匹配。
-- `deprecatedPenalty` 确保旧规则不进入默认上下文。
+- `hitCountBoost` 已有基础版，避免核心规则被新但弱的规则冲掉。
+- `confidenceBoost` 已有基础版。
+- `recencyBoost` 可让最近明确纠正的规则更容易浮上来。
+- `scopeBoost` 可优先 repo/project/client 精确匹配。
+- `deprecatedPenalty` 当前通过默认过滤非 active 规则实现。
 
 ## Context 注入格式
 
-建议新增 `formatRuleContext`，与现有 `formatElephanceContext` 分开。
+当前实现将 rules 注入现有 `formatElephanceContext`，而不是另建单独的 `formatRuleContext`。`createMemoryContext` 会并行检索 memory、rules、schema，并把 active rules 放在同一个 `<elephance_context>` 里：
 
 ```txt
-<elephance_rules>
+<elephance_context>
 Relevant rules:
-- [project_convention][active][v3] Use pnpm for package management in this repo.
-- [ui_preference][active][v1] Button border radius should not exceed 8px unless the existing design system requires otherwise.
-</elephance_rules>
+- [project_convention/project] Use pnpm for package management in this repo.
+  action: Use pnpm for package installation.
+- [ui_preference/project] Button border radius should not exceed 8px.
+  action: Keep button border radius at or below 8px.
+
+Relevant user memory:
+- [user_preference] User prefers concise TypeScript examples.
+</elephance_context>
 ```
 
-如果规则存在冲突，不要直接注入为普通规则，应注入为 warning：
+当前默认只检索 `active` 规则；`deprecated`、`archived`、`conflicted` 不会进入普通上下文。后续如果需要把冲突规则作为 warning 注入，可以扩展为：
 
 ```txt
 Conflicted rules requiring user confirmation:
@@ -315,14 +323,21 @@ Conflicted rules requiring user confirmation:
 
 ## MCP Tools 设计
 
-建议新增：
+当前已实现：
 
 ```txt
+rule_upsert
 rule_query
+rule_record_hit
+rule_update_status
 rule_extract_candidates
 rule_commit_candidates
-rule_record_hit
 rule_reflect
+```
+
+后续可继续拆分为更细粒度工具：
+
+```txt
 rule_list_conflicts
 rule_deprecate
 ```
@@ -363,17 +378,18 @@ rule_deprecate
     {
       "text": "Button border radius should not exceed 8px in this project.",
       "label": "ui_preference",
+      "scope": "project",
+      "projectId": "elephance",
       "confidence": 0.91,
-      "metadata": {
-        "scope": "project",
-        "action": "Limit button border radius",
-        "constraint": "Do not exceed 8px"
-      }
+      "action": "Limit button border radius",
+      "constraint": "Do not exceed 8px"
     }
   ],
-  "dryRun": false
+  "dryRun": true
 }
 ```
+
+返回结果包含每条候选的 judge decision：`add`、`merge`、`conflict` 或 `skip`。MCP/Cursor 路径默认建议先 dry-run，再由用户或宿主确认是否持久化。
 
 ## Cursor 接入
 
@@ -484,8 +500,11 @@ CLI 是非 MCP 用户的主要入口，也适合做定期维护任务。
 
 ## 默认策略建议
 
-- `autoExtract`: true for SDK, manual for MCP clients。
-- `autoCommit`: false by default。
+- `@elephance/agent` 默认 `rules.autoWrite` 为 `false`，因此默认不会自动提取或写入规则。
+- 自建 SDK/Agent 应用可以显式设置 `rules.autoExtract: true` 或 `rules.autoWrite: "dry-run"`。
+- 自建 Agent 如果希望用大模型从普通聊天中结构化提炼规则，可以设置 `rules.extractor: "llm"`；该模式复用同一个 `ChatAdapter`，不需要第二套模型配置。
+- MCP/Cursor/Codex 路径保持显式工具调用，`rule_extract_candidates` 使用启发式提取，不要求额外 LLM 配置。
+- `autoCommit`: false by default；对应当前 API 的 `autoWrite: false`。
 - 用户明确说“记住”时，可自动 commit。
 - 未明确要求时，返回 candidate 给客户端确认。
 - `deprecated` 规则默认不检索。

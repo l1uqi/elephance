@@ -4,7 +4,7 @@
 
 `elephance` 的 stdio MCP Server，可以把本地 LanceDB 记忆和项目 Schema 检索能力暴露给 Cursor 以及其他 MCP Client。
 
-当前已发布版本：`0.2.0`。
+当前已发布版本：`0.3.0`。
 
 ## 它提供什么
 

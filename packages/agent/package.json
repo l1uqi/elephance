@@ -1,6 +1,6 @@
 {
   "name": "@elephance/agent",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Agent memory orchestration layer for elephance",
   "license": "MIT",
   "type": "module",
@@ -33,6 +33,6 @@
     "context"
   ],
   "dependencies": {
-    "@elephance/core": "^0.2.0"
+    "@elephance/core": "^0.3.0"
   }
 }

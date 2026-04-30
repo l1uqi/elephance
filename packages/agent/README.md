@@ -6,7 +6,7 @@ Use this package when you own the model loop and want durable memory to be
 retrieved before an LLM call and optionally extracted after the response. It can
 also retrieve, extract, judge, commit, and reflect structured rule memory.
 
-Current published version: `0.2.0`.
+Current published version: `0.3.0`.
 
 ```bash
 npm install @elephance/agent @elephance/core openai
