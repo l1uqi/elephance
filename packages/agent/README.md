@@ -6,6 +6,10 @@ Use this package when you own the model loop and want durable memory to be
 retrieved before an LLM call and optionally extracted after the response. It can
 also retrieve, extract, judge, commit, and reflect structured rule memory.
 
+This is the integration path for guaranteed automatic summarization. Hosted MCP
+clients such as Cursor cannot provide that guarantee because MCP servers only
+receive data when the host agent calls a tool.
+
 Current published version: `0.3.0`.
 
 ```bash

@@ -37,6 +37,15 @@ Local vector memory for AI apps, agents, and MCP clients.
 - Keep vectors local-first with LanceDB.
 - Reuse the same memory layer through SDK calls or MCP tools.
 
+## Integration Model
+
+Elephance has two integration modes:
+
+- `@elephance/agent` is the automatic path. Use it when you own the model loop. It receives every message and response, so it can retrieve context before the LLM call and extract memory/rule candidates after the response.
+- `@elephance/mcp` is a best-effort tool path for Cursor, Claude Code, Claude Desktop, and other hosted clients. MCP servers are passive: they cannot listen to chat in the background or receive transcripts unless the client calls a tool. Client rules can encourage automatic tool use, but the host agent still decides when to call MCP tools.
+
+If you need guaranteed background summarization, wrap the model call with `@elephance/agent` or another application-level adapter. If you use Cursor, treat Elephance MCP as local searchable memory plus rule tools that are invoked by Cursor Agent rules.
+
 ## Requirements
 
 - Node.js 18 or later.

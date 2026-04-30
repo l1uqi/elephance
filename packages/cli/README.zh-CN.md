@@ -40,6 +40,8 @@ elephance init cursor --dir /path/to/repo
 /path/to/repo/.cursor/rules/elephance.mdc
 ```
 
+Cursor 模板配置的是 best-effort MCP 工作流。它不能让 Elephance 在后台监听聊天；仍然需要 Cursor Agent 主动调用可用 tools。
+
 生成 Codex `AGENTS.md` 模板：
 
 ```bash

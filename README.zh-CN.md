@@ -37,6 +37,15 @@
 - 用 LanceDB 保持本地优先的向量存储。
 - 同一套记忆层既可以通过 SDK 调用，也可以通过 MCP tools 调用。
 
+## 集成模型
+
+Elephance 有两种集成模式：
+
+- `@elephance/agent` 是真正自动的路径。适合你自己掌控模型调用流程的应用。它能拿到每轮输入和回复，因此可以在 LLM 调用前检索上下文，在回复后提取 memory/rule candidates。
+- `@elephance/mcp` 是面向 Cursor、Claude Code、Claude Desktop 等现成客户端的 best-effort 工具路径。MCP Server 是被动的：它不能在后台监听聊天，也不能自动收到完整 transcript，除非客户端主动调用 tool。客户端 rules 可以推动自动调用，但最终仍由宿主 Agent 决定是否调用 MCP tools。
+
+如果你需要有保证的后台自动总结，请使用 `@elephance/agent` 或应用层 wrapper 包住模型调用。如果你使用 Cursor，应把 Elephance MCP 理解为本地可检索记忆和规则工具，由 Cursor Agent rules 驱动调用。
+
 ## 环境要求
 
 - Node.js 18 或更高版本。

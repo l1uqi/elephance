@@ -40,6 +40,10 @@ This writes:
 /path/to/repo/.cursor/rules/elephance.mdc
 ```
 
+The Cursor template configures a best-effort MCP workflow. It cannot make
+Elephance listen to chats in the background; Cursor Agent still has to call the
+available tools.
+
 Generate a Codex `AGENTS.md` template:
 
 ```bash

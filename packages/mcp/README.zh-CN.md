@@ -111,6 +111,12 @@ npm run build
 
 MCP Server 暴露的是同一套受 [AutoSkill](https://arxiv.org/abs/2603.01145)、[MemSkill](https://arxiv.org/abs/2602.02474)、[Memory for Autonomous LLM Agents](https://arxiv.org/abs/2603.07670) 和 [De Jure](https://arxiv.org/abs/2604.02276) 启发的 rule-memory 生命周期，但 Cursor 等 MCP Client 保持显式、用户可控的工具流程。提取和反思可以先 dry-run，真正写入通过 commit/update tools 完成，不做静默后台改写。
 
+## Cursor 自动化边界
+
+MCP Server 是被动的。Cursor 不会把每轮聊天自动流式发送给这个 server，因此 `@elephance/mcp` 无法单独实现有保证的后台自动总结。Cursor rules 可以要求 Agent 调用 `context_query`、`rule_extract_candidates` 和 `rule_commit_candidates`，但这仍然是宿主 Agent 驱动的 best-effort 工作流。
+
+如果你需要围绕每次模型调用都必定执行的自动 memory/rule 提取，请使用 `@elephance/agent`。
+
 ## 环境变量
 
 | 变量 | 说明 |

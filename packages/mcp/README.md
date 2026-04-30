@@ -111,6 +111,12 @@ Add `.lancedb` to your target app's `.gitignore` unless you intentionally want t
 
 The MCP server exposes the same rule-memory lifecycle inspired by [AutoSkill](https://arxiv.org/abs/2603.01145), [MemSkill](https://arxiv.org/abs/2602.02474), [Memory for Autonomous LLM Agents](https://arxiv.org/abs/2603.07670), and [De Jure](https://arxiv.org/abs/2604.02276), but keeps Cursor and other MCP clients on an explicit user-controlled workflow. Extraction and reflection tools can dry-run first; writes happen through commit/update tools instead of silent background mutation.
 
+## Cursor Automation Boundary
+
+MCP servers are passive. Cursor does not stream every chat turn to this server, so `@elephance/mcp` cannot perform guaranteed background summarization by itself. Cursor rules can ask Agent to call `context_query`, `rule_extract_candidates`, and `rule_commit_candidates`, but that remains a best-effort host-agent workflow.
+
+Use `@elephance/agent` when you need automatic memory/rule extraction that is guaranteed to run around every model call.
+
 ## Environment Variables
 
 | Variable | Description |

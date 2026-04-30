@@ -1,11 +1,16 @@
 export function cursorRulesTemplate(): string {
   return `---
-description: Use Elephance memory and rules before durable implementation work
+description: Best-effort Elephance memory and rules workflow
 alwaysApply: true
 ---
 
-Before substantial implementation work, call Elephance context_query with the user request.
-Use returned active rules as user, project, repo, or client preferences.
+Elephance for Cursor is a best-effort MCP tool workflow. MCP servers cannot
+listen to chat in the background, so use the available tools when the task makes
+durable memory or project rules relevant.
+
+Before substantial implementation work, call context_query with the user request.
+Use returned active rules as user, project, repo, or client preferences. If tools
+are unavailable or disabled, continue normally and mention the issue briefly.
 
 When the user corrects durable behavior or says to remember a rule:
 - Call rule_extract_candidates first.
@@ -20,7 +25,9 @@ Prefer deprecated or archived status over deleting old rules.
 export function codexAgentsTemplate(): string {
   return `# Elephance
 
-This AGENTS.md section configures Codex to use Elephance rule memory.
+This AGENTS.md section configures Codex to use Elephance rule memory as a
+best-effort MCP/tool workflow. Tools cannot observe chat in the background; they
+must be called by the agent when relevant.
 
 Use Elephance before substantial work:
 - Query relevant context with context_query for the current task.
