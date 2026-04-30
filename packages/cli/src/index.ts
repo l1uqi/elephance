@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { realpathSync } from "node:fs";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -368,11 +369,21 @@ export async function runCli(argv: string[], io: CliIo = {}): Promise<number> {
   }
 }
 
-const isDirectRun =
-  process.argv[1] &&
-  import.meta.url === pathToFileURL(process.argv[1]).href;
+function isDirectRun() {
+  if (!process.argv[1]) {
+    return false;
+  }
+  try {
+    return (
+      pathToFileURL(realpathSync(process.argv[1])).href ===
+      pathToFileURL(realpathSync(new URL(import.meta.url))).href
+    );
+  } catch {
+    return import.meta.url === pathToFileURL(process.argv[1]).href;
+  }
+}
 
-if (isDirectRun) {
+if (isDirectRun()) {
   const code = await runCli(process.argv.slice(2));
   process.exitCode = code;
 }

@@ -1,7 +1,7 @@
 {
   "name": "elephance-workspace",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Workspace for elephance core, agent, and MCP packages",
   "license": "MIT",
   "type": "module",

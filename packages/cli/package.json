@@ -1,6 +1,6 @@
 {
   "name": "@elephance/cli",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "CLI for elephance local memory, rule memory, and client templates",
   "license": "MIT",
   "type": "module",
@@ -34,7 +34,7 @@
     "codex"
   ],
   "dependencies": {
-    "@elephance/agent": "^0.3.0",
-    "@elephance/core": "^0.3.0"
+    "@elephance/agent": "^0.3.1",
+    "@elephance/core": "^0.3.1"
   }
 }
